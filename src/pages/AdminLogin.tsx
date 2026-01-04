@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -12,14 +12,13 @@ import { Helmet } from 'react-helmet-async';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
+  const { signIn, user, isAdmin, isLoading } = useAuth();
   const { toast } = useToast();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
     if (!isLoading && user && isAdmin) {
@@ -42,39 +41,21 @@ export default function AdminLogin() {
     setIsSubmitting(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await signUp(email.trim(), password);
+      const { error } = await signIn(email.trim(), password);
 
-        if (error) {
-          toast({
-            title: 'Erro ao criar conta',
-            description: error.message || 'Não foi possível criar a conta.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
+      if (error) {
         toast({
-          title: 'Conta criada!',
-          description: 'Login realizado automaticamente.',
+          title: 'Erro ao entrar',
+          description: 'Email ou senha incorretos.',
+          variant: 'destructive',
         });
-      } else {
-        const { error } = await signIn(email.trim(), password);
-
-        if (error) {
-          toast({
-            title: 'Erro ao entrar',
-            description: 'Email ou senha incorretos.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        toast({
-          title: 'Bem-vindo!',
-          description: 'Login realizado com sucesso.',
-        });
+        return;
       }
+
+      toast({
+        title: 'Bem-vindo!',
+        description: 'Login realizado com sucesso.',
+      });
     } catch (err) {
       toast({
         title: 'Erro',
@@ -118,12 +99,10 @@ export default function AdminLogin() {
           <Card className="border-border/50 bg-card/80 backdrop-blur">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-display">
-                {isSignUp ? 'Criar Conta Admin' : 'Área Administrativa'}
+                Área Administrativa
               </CardTitle>
               <CardDescription>
-                {isSignUp 
-                  ? 'Crie sua conta de administrador' 
-                  : 'Entre com suas credenciais para acessar o painel'}
+                Entre com suas credenciais para acessar o painel
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -173,26 +152,22 @@ export default function AdminLogin() {
                   className="w-full mt-6"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting 
-                    ? (isSignUp ? 'Criando...' : 'Entrando...') 
-                    : (isSignUp ? 'Criar Conta' : 'Entrar')}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setIsSignUp(!isSignUp)}
-                  disabled={isSubmitting}
-                >
-                  {isSignUp ? 'Já tenho conta' : 'Criar conta'}
+                  {isSubmitting ? 'Entrando...' : 'Entrar'}
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-                  ← Voltar ao site
-                </Button>
+              <div className="mt-6 pt-4 border-t border-border/50 text-center space-y-3">
+                <Link 
+                  to="/barber/register" 
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  É barbeiro? Crie sua conta aqui
+                </Link>
+                <div>
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+                    ← Voltar ao site
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
