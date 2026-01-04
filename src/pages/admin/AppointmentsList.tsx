@@ -77,14 +77,16 @@ export default function AppointmentsList() {
   };
 
   const getWhatsAppLink = (apt: AppointmentWithDetails) => {
+    const formattedDate = format(new Date(apt.appointment_date), 'dd/MM/yyyy');
     const message = encodeURIComponent(
       `Olá ${apt.client_name}!\n\n` +
-      `Confirmamos seu agendamento:\n` +
-      `✂️ Serviço: ${apt.service?.name}\n` +
-      `💈 Barbeiro: ${apt.barber?.name}\n` +
-      `📅 Data: ${format(new Date(apt.appointment_date), "dd 'de' MMMM", { locale: pt })}\n` +
-      `🕐 Horário: ${apt.appointment_time}\n\n` +
-      `Aguardamos você!`
+      `Confirmamos seu agendamento:\n\n` +
+      `Serviço: ${apt.service?.name}\n` +
+      `Barbeiro: ${apt.barber?.name}\n` +
+      `Data: ${formattedDate}\n` +
+      `Hora: ${apt.appointment_time}\n` +
+      `Valor: ${apt.service?.price?.toFixed(0) || 0} MZN\n\n` +
+      `Aguardamos você! ✂️`
     );
     const cleanNumber = apt.client_phone.replace(/\D/g, '');
     return `https://wa.me/${cleanNumber}?text=${message}`;

@@ -178,19 +178,22 @@ export function BookingForm({ onBack }: BookingFormProps) {
   const getWhatsAppLink = () => {
     if (!createdAppointment) return '#';
 
-    const barberName = barbers.find(b => b.id === createdAppointment.barber_id)?.name;
-    const serviceName = services.find(s => s.id === createdAppointment.service_id)?.name;
-    const formattedDate = format(new Date(createdAppointment.appointment_date), "dd 'de' MMMM", { locale: pt });
+    const barberName = barbers.find(b => b.id === createdAppointment.barber_id)?.name || 'N/A';
+    const service = services.find(s => s.id === createdAppointment.service_id);
+    const serviceName = service?.name || 'N/A';
+    const servicePrice = service?.price || 0;
+    const formattedDate = format(new Date(createdAppointment.appointment_date), 'dd/MM/yyyy');
 
     const message = encodeURIComponent(
-      `Olá! Gostaria de confirmar meu agendamento:\n\n` +
-      `👤 Nome: ${createdAppointment.client_name}\n` +
-      `📱 Telefone: ${createdAppointment.client_phone}\n` +
-      `✂️ Serviço: ${serviceName}\n` +
-      `💈 Barbeiro: ${barberName}\n` +
-      `📅 Data: ${formattedDate}\n` +
-      `🕐 Horário: ${createdAppointment.appointment_time}\n\n` +
-      `Aguardo confirmação!`
+      `Olá! Um novo agendamento foi realizado com sucesso.\n\n` +
+      `Cliente: ${createdAppointment.client_name}\n` +
+      `Telefone: ${createdAppointment.client_phone}\n` +
+      `Serviço: ${serviceName}\n` +
+      `Barbeiro: ${barberName}\n` +
+      `Data: ${formattedDate}\n` +
+      `Hora: ${createdAppointment.appointment_time}\n` +
+      `Valor: ${servicePrice.toFixed(0)} MZN\n\n` +
+      `Obrigado pela preferência! ✂️`
     );
 
     const cleanNumber = whatsappNumber.replace(/\D/g, '');
