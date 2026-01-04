@@ -71,6 +71,50 @@ export type Database = {
           },
         ]
       }
+      barber_accounts: {
+        Row: {
+          approval_status: string
+          barber_id: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          approval_status?: string
+          barber_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          approval_status?: string
+          barber_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_accounts_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       barber_services: {
         Row: {
           barber_id: string
@@ -242,6 +286,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved_barber: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "barber"

@@ -19,6 +19,7 @@ const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/admin/dashboard/appointments', icon: Calendar, label: 'Agendamentos' },
   { to: '/admin/dashboard/barbers', icon: UserCheck, label: 'Barbeiros' },
+  { to: '/admin/dashboard/accounts', icon: Users, label: 'Contas' },
   { to: '/admin/dashboard/services', icon: Scissors, label: 'Serviços' },
   { to: '/admin/dashboard/clients', icon: Users, label: 'Clientes' },
   { to: '/admin/dashboard/settings', icon: Settings, label: 'Configurações' },

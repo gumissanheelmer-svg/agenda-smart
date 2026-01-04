@@ -14,6 +14,10 @@ import BarbersList from "./pages/admin/BarbersList";
 import ServicesList from "./pages/admin/ServicesList";
 import ClientsList from "./pages/admin/ClientsList";
 import SettingsPage from "./pages/admin/SettingsPage";
+import BarberAccountsPage from "./pages/admin/BarberAccountsPage";
+import BarberRegister from "./pages/BarberRegister";
+import BarberLogin from "./pages/BarberLogin";
+import BarberDashboard from "./pages/BarberDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +40,11 @@ const App = () => (
                 <Route path="services" element={<ServicesList />} />
                 <Route path="clients" element={<ClientsList />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="accounts" element={<BarberAccountsPage />} />
               </Route>
+              <Route path="/barber/register" element={<BarberRegister />} />
+              <Route path="/barber/login" element={<BarberLogin />} />
+              <Route path="/barber/dashboard" element={<BarberDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

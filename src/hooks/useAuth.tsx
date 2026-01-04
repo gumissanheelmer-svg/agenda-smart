@@ -2,10 +2,20 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+interface BarberAccountInfo {
+  id: string;
+  name: string;
+  barber_id: string | null;
+  approval_status: 'pending' | 'approved' | 'rejected' | 'blocked';
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  isBarber: boolean;
+  isApprovedBarber: boolean;
+  barberAccount: BarberAccountInfo | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -18,6 +28,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isBarber, setIsBarber] = useState(false);
+  const [isApprovedBarber, setIsApprovedBarber] = useState(false);
+  const [barberAccount, setBarberAccount] = useState<BarberAccountInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,10 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           setTimeout(() => {
-            checkAdminRole(session.user.id);
+            checkUserRoles(session.user.id);
           }, 0);
         } else {
-          setIsAdmin(false);
+          resetRoles();
         }
       }
     );
@@ -41,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        checkAdminRole(session.user.id);
+        checkUserRoles(session.user.id);
       }
       setIsLoading(false);
     });
@@ -49,25 +62,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminRole = async (userId: string) => {
+  const resetRoles = () => {
+    setIsAdmin(false);
+    setIsBarber(false);
+    setIsApprovedBarber(false);
+    setBarberAccount(null);
+  };
+
+  const checkUserRoles = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Check admin role
+      const { data: adminData, error: adminError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('role', 'admin')
         .maybeSingle();
 
-      if (error) {
-        console.error('Error checking admin role:', error);
-        setIsAdmin(false);
+      if (adminError) {
+        console.error('Error checking admin role:', adminError);
+      }
+      setIsAdmin(!!adminData);
+
+      // Check barber account and status
+      const { data: barberData, error: barberError } = await supabase
+        .from('barber_accounts')
+        .select('id, name, barber_id, approval_status')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (barberError) {
+        console.error('Error checking barber account:', barberError);
+        setIsBarber(false);
+        setIsApprovedBarber(false);
+        setBarberAccount(null);
         return;
       }
 
-      setIsAdmin(!!data);
+      if (barberData) {
+        setIsBarber(true);
+        setBarberAccount(barberData as BarberAccountInfo);
+        setIsApprovedBarber(barberData.approval_status === 'approved');
+      } else {
+        setIsBarber(false);
+        setIsApprovedBarber(false);
+        setBarberAccount(null);
+      }
     } catch (err) {
-      console.error('Error in checkAdminRole:', err);
-      setIsAdmin(false);
+      console.error('Error in checkUserRoles:', err);
+      resetRoles();
     }
   };
 
@@ -112,11 +155,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setIsAdmin(false);
+    resetRoles();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      isAdmin, 
+      isBarber, 
+      isApprovedBarber, 
+      barberAccount,
+      isLoading, 
+      signIn, 
+      signUp, 
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );
