@@ -18,6 +18,43 @@ interface BookingFormProps {
 
 type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 
+// Validação de telefone moçambicano (84, 85, 86, 87, 82, 83)
+const validateMozambicanPhone = (phone: string): { isValid: boolean; formatted: string; error?: string } => {
+  // Remove todos os caracteres não numéricos
+  const digits = phone.replace(/\D/g, '');
+  
+  // Verifica se começa com 258 (código do país)
+  let localNumber = digits;
+  if (digits.startsWith('258')) {
+    localNumber = digits.slice(3);
+  }
+  
+  // Deve ter exatamente 9 dígitos
+  if (localNumber.length !== 9) {
+    return { 
+      isValid: false, 
+      formatted: phone,
+      error: 'O número deve ter 9 dígitos (ex: 84 000 0000)'
+    };
+  }
+  
+  // Deve começar com 82, 83, 84, 85, 86 ou 87 (operadoras moçambicanas)
+  const validPrefixes = ['82', '83', '84', '85', '86', '87'];
+  const prefix = localNumber.slice(0, 2);
+  
+  if (!validPrefixes.includes(prefix)) {
+    return { 
+      isValid: false, 
+      formatted: phone,
+      error: 'Número inválido. Use um número Vodacom (84/85), Movitel (86/87) ou Tmcel (82/83)'
+    };
+  }
+  
+  // Formata o número com código do país
+  const formatted = `+258${localNumber}`;
+  return { isValid: true, formatted };
+};
+
 export function BookingForm({ onBack }: BookingFormProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
@@ -28,6 +65,7 @@ export function BookingForm({ onBack }: BookingFormProps) {
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState('+258840000000');
+  const [phoneError, setPhoneError] = useState<string>('');
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -308,18 +346,50 @@ export function BookingForm({ onBack }: BookingFormProps) {
                 <div className="flex gap-2">
                   <Input
                     id="phone"
-                    placeholder="+258 84 000 0000"
+                    placeholder="84 000 0000"
                     value={formData.clientPhone}
-                    onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                    className="bg-input border-border"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ ...formData, clientPhone: value });
+                      if (value.replace(/\D/g, '').length >= 9) {
+                        const validation = validateMozambicanPhone(value);
+                        setPhoneError(validation.error || '');
+                      } else {
+                        setPhoneError('');
+                      }
+                    }}
+                    onBlur={() => {
+                      if (formData.clientPhone) {
+                        const validation = validateMozambicanPhone(formData.clientPhone);
+                        setPhoneError(validation.error || '');
+                        if (validation.isValid) {
+                          setFormData({ ...formData, clientPhone: validation.formatted });
+                        }
+                      }
+                    }}
+                    className={`bg-input border-border ${phoneError ? 'border-destructive' : ''}`}
                   />
                 </div>
+                {phoneError && (
+                  <p className="text-sm text-destructive">{phoneError}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Formato: 84/85/86/87/82/83 seguido de 7 dígitos
+                </p>
               </div>
 
               <Button
                 variant="gold"
                 className="w-full mt-4"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  const validation = validateMozambicanPhone(formData.clientPhone);
+                  if (!validation.isValid) {
+                    setPhoneError(validation.error || 'Número inválido');
+                    return;
+                  }
+                  setFormData({ ...formData, clientPhone: validation.formatted });
+                  setStep(2);
+                }}
                 disabled={!formData.clientName || !formData.clientPhone}
               >
                 Continuar
