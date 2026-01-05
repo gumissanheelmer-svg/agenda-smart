@@ -215,6 +215,7 @@ export type Database = {
       barbershops: {
         Row: {
           active: boolean
+          approval_status: string
           background_color: string
           closing_time: string | null
           created_at: string
@@ -222,6 +223,7 @@ export type Database = {
           logo_url: string | null
           name: string
           opening_time: string | null
+          owner_email: string | null
           primary_color: string
           secondary_color: string
           slug: string
@@ -231,6 +233,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          approval_status?: string
           background_color?: string
           closing_time?: string | null
           created_at?: string
@@ -238,6 +241,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           opening_time?: string | null
+          owner_email?: string | null
           primary_color?: string
           secondary_color?: string
           slug: string
@@ -247,6 +251,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          approval_status?: string
           background_color?: string
           closing_time?: string | null
           created_at?: string
@@ -254,6 +259,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           opening_time?: string | null
+          owner_email?: string | null
           primary_color?: string
           secondary_color?: string
           slug?: string
@@ -404,7 +410,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "barber"
+      app_role: "admin" | "barber" | "superadmin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -532,7 +538,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "barber"],
+      app_role: ["admin", "barber", "superadmin"],
     },
   },
 } as const
