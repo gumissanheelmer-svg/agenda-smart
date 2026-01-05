@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Calendar, Search, MessageCircle, Check, X, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AppointmentWithDetails {
   id: string;
@@ -23,27 +24,62 @@ interface AppointmentWithDetails {
 
 export default function AppointmentsList() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState('+258840000000');
 
   useEffect(() => {
-    fetchAppointments();
-    fetchSettings();
-  }, []);
+    if (user) {
+      fetchBarbershopId();
+    }
+  }, [user]);
 
-  const fetchSettings = async () => {
-    const { data } = await supabase.from('settings').select('whatsapp_number').limit(1).maybeSingle();
-    if (data) setWhatsappNumber(data.whatsapp_number || '+258840000000');
+  useEffect(() => {
+    if (barbershopId) {
+      fetchAppointments();
+      fetchBarbershopSettings();
+    }
+  }, [barbershopId]);
+
+  const fetchBarbershopId = async () => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('barbershop_id')
+      .eq('user_id', user?.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (data?.barbershop_id) {
+      setBarbershopId(data.barbershop_id);
+    }
+  };
+
+  const fetchBarbershopSettings = async () => {
+    if (!barbershopId) return;
+    
+    const { data } = await supabase
+      .from('barbershops')
+      .select('whatsapp_number')
+      .eq('id', barbershopId)
+      .maybeSingle();
+    
+    if (data?.whatsapp_number) {
+      setWhatsappNumber(data.whatsapp_number);
+    }
   };
 
   const fetchAppointments = async () => {
+    if (!barbershopId) return;
+    
     setIsLoading(true);
     const { data, error } = await supabase
       .from('appointments')
       .select('*, barber:barbers(name), service:services(name, price)')
+      .eq('barbershop_id', barbershopId)
       .order('appointment_date', { ascending: false })
       .order('appointment_time', { ascending: false });
 

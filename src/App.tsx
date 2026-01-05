@@ -5,7 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from "@/hooks/useAuth";
-import Index from "./pages/Index";
+import { BarbershopProvider } from "@/hooks/useBarbershop";
+import { DynamicThemeProvider } from "@/components/DynamicThemeProvider";
+import BarbershopList from "./pages/BarbershopList";
+import BarbershopHome from "./pages/BarbershopHome";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import DashboardOverview from "./pages/admin/DashboardOverview";
@@ -25,30 +28,44 @@ const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin" element={<Login />} />
-              <Route path="/barber/login" element={<Login />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />}>
-                <Route index element={<DashboardOverview />} />
-                <Route path="appointments" element={<AppointmentsList />} />
-                <Route path="barbers" element={<BarbersList />} />
-                <Route path="services" element={<ServicesList />} />
-                <Route path="clients" element={<ClientsList />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="accounts" element={<BarberAccountsPage />} />
-              </Route>
-              <Route path="/barber/register" element={<BarberRegister />} />
-              <Route path="/barber/dashboard" element={<BarberDashboard />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <BarbershopProvider>
+          <DynamicThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<BarbershopList />} />
+                  <Route path="/b/:slug" element={<BarbershopHome />} />
+                  
+                  {/* Auth routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/admin" element={<Login />} />
+                  <Route path="/barber/login" element={<Login />} />
+                  <Route path="/barber/register" element={<BarberRegister />} />
+                  
+                  {/* Admin routes */}
+                  <Route path="/admin/dashboard" element={<AdminDashboard />}>
+                    <Route index element={<DashboardOverview />} />
+                    <Route path="appointments" element={<AppointmentsList />} />
+                    <Route path="barbers" element={<BarbersList />} />
+                    <Route path="services" element={<ServicesList />} />
+                    <Route path="clients" element={<ClientsList />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="accounts" element={<BarberAccountsPage />} />
+                  </Route>
+                  
+                  {/* Barber routes */}
+                  <Route path="/barber/dashboard" element={<BarberDashboard />} />
+                  
+                  {/* 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </DynamicThemeProvider>
+        </BarbershopProvider>
       </AuthProvider>
     </QueryClientProvider>
   </HelmetProvider>
