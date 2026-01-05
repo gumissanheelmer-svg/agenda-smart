@@ -156,6 +156,7 @@ export default function BarbershopRegister() {
         email: formData.ownerEmail,
         password: formData.ownerPassword,
         options: {
+          emailRedirectTo: `${window.location.origin}/admin/dashboard`,
           data: {
             name: formData.ownerName,
             phone: formData.ownerPhone,
@@ -172,6 +173,19 @@ export default function BarbershopRegister() {
       }
 
       const userId = authData.user.id;
+
+      // Wait for session to be established
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        // Try to sign in if session not immediately available (auto-confirm enabled)
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.ownerEmail,
+          password: formData.ownerPassword,
+        });
+        if (signInError) {
+          console.warn('Auto sign-in failed, user may need to confirm email:', signInError.message);
+        }
+      }
 
       // 3. Upload logo if provided
       let logoUrl: string | null = null;
