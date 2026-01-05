@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   UserCheck,
   UserX,
@@ -42,25 +43,33 @@ interface BarberAccount {
   phone: string;
   approval_status: 'pending' | 'approved' | 'rejected' | 'blocked';
   barber_id: string | null;
+  barbershop_id: string | null;
   created_at: string;
 }
 
 export default function BarberAccountsPage() {
   const { toast } = useToast();
+  const { barbershopId } = useAuth();
   const [accounts, setAccounts] = useState<BarberAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState<BarberAccount | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'block' | null>(null);
 
   useEffect(() => {
-    fetchAccounts();
-  }, []);
+    if (barbershopId) {
+      fetchAccounts();
+    }
+  }, [barbershopId]);
 
   const fetchAccounts = async () => {
+    if (!barbershopId) return;
+    
     setIsLoading(true);
+    // Get accounts for this barbershop OR accounts without a barbershop (pending assignment)
     const { data, error } = await supabase
       .from('barber_accounts')
       .select('*')
+      .or(`barbershop_id.eq.${barbershopId},barbershop_id.is.null`)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -83,9 +92,15 @@ export default function BarberAccountsPage() {
                     : actionType === 'reject' ? 'rejected' 
                     : 'blocked';
 
+    // When approving, also assign the barbershop_id
+    const updateData: Record<string, string> = { approval_status: newStatus };
+    if (actionType === 'approve' && barbershopId) {
+      updateData.barbershop_id = barbershopId;
+    }
+
     const { error } = await supabase
       .from('barber_accounts')
-      .update({ approval_status: newStatus })
+      .update(updateData)
       .eq('id', selectedAccount.id);
 
     if (error) {

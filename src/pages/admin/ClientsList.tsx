@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Users, Search, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Client {
   client_name: string;
@@ -14,19 +15,25 @@ interface Client {
 }
 
 export default function ClientsList() {
+  const { barbershopId } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchClients();
-  }, []);
+    if (barbershopId) {
+      fetchClients();
+    }
+  }, [barbershopId]);
 
   const fetchClients = async () => {
+    if (!barbershopId) return;
+    
     setIsLoading(true);
     const { data, error } = await supabase
       .from('appointments')
       .select('client_name, client_phone, appointment_date')
+      .eq('barbershop_id', barbershopId)
       .order('appointment_date', { ascending: false });
 
     if (error) {

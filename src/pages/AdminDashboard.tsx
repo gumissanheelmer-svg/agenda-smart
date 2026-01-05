@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminBarbershop } from '@/hooks/useAdminBarbershop';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { 
@@ -77,6 +78,7 @@ const NavContent = ({ onItemClick, onSignOut }: NavContentProps) => (
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user, isAdmin, isLoading, signOut } = useAuth();
+  const { barbershop } = useAdminBarbershop();
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -110,7 +112,7 @@ export default function AdminDashboard() {
   return (
     <>
       <Helmet>
-        <title>Dashboard - Barbearia Elite Admin</title>
+        <title>Dashboard - {barbershop?.name || 'Admin'}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 

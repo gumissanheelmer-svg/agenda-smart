@@ -236,17 +236,17 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     const serviceName = service?.name || 'N/A';
     const servicePrice = service?.price || 0;
     const formattedDate = format(new Date(createdAppointment.appointment_date), 'dd/MM/yyyy');
+    const barbershopName = barbershop?.name || 'Barbearia';
 
     const message = encodeURIComponent(
-      `Olá! Um novo agendamento foi realizado com sucesso.\n\n` +
-      `Cliente: ${createdAppointment.client_name}\n` +
-      `Telefone: ${createdAppointment.client_phone}\n` +
-      `Serviço: ${serviceName}\n` +
-      `Barbeiro: ${barberName}\n` +
-      `Data: ${formattedDate}\n` +
-      `Hora: ${createdAppointment.appointment_time}\n` +
-      `Valor: ${servicePrice.toFixed(0)} MZN\n\n` +
-      `Obrigado pela preferência! ✂️`
+      `Olá! Fiz um agendamento na ${barbershopName}\n\n` +
+      `👤 Cliente: ${createdAppointment.client_name}\n` +
+      `✂️ Barbeiro: ${barberName}\n` +
+      `💈 Serviço: ${serviceName}\n` +
+      `📅 Data: ${formattedDate}\n` +
+      `⏰ Hora: ${createdAppointment.appointment_time}\n` +
+      `💰 Valor: ${servicePrice.toFixed(0)} MZN\n\n` +
+      `Aguardo confirmação! 🙏`
     );
 
     const cleanNumber = whatsappNumber.replace(/\D/g, '');
