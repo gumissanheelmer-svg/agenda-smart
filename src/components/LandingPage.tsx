@@ -5,9 +5,13 @@ import { Link } from 'react-router-dom';
 
 interface LandingPageProps {
   onBookNow: () => void;
+  barbershopName?: string;
+  logoUrl?: string | null;
 }
 
-export function LandingPage({ onBookNow }: LandingPageProps) {
+export function LandingPage({ onBookNow, barbershopName, logoUrl }: LandingPageProps) {
+  const displayName = barbershopName || 'Barbearia Elite';
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Background decorations */}
@@ -18,7 +22,11 @@ export function LandingPage({ onBookNow }: LandingPageProps) {
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        <Logo size="sm" />
+        {logoUrl ? (
+          <img src={logoUrl} alt={displayName} className="h-10 w-auto object-contain" />
+        ) : (
+          <Logo size="sm" />
+        )}
         <Link to="/login">
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
             Entrar
@@ -29,14 +37,25 @@ export function LandingPage({ onBookNow }: LandingPageProps) {
       {/* Hero Section */}
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-6 text-center">
         <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <Logo size="lg" showText={false} />
+          {logoUrl ? (
+            <img src={logoUrl} alt={displayName} className="h-24 w-auto object-contain mx-auto" />
+          ) : (
+            <Logo size="lg" showText={false} />
+          )}
         </div>
 
         <h1 
           className="mt-8 text-5xl md:text-7xl font-display font-bold text-foreground animate-slide-up"
           style={{ animationDelay: '0.2s' }}
         >
-          Barbearia <span className="text-primary">Elite</span>
+          {displayName.includes(' ') ? (
+            <>
+              {displayName.split(' ').slice(0, -1).join(' ')}{' '}
+              <span className="text-primary">{displayName.split(' ').slice(-1)}</span>
+            </>
+          ) : (
+            <span className="text-primary">{displayName}</span>
+          )}
         </h1>
 
         <p 
@@ -90,7 +109,7 @@ export function LandingPage({ onBookNow }: LandingPageProps) {
 
       {/* Footer */}
       <footer className="relative z-10 py-8 text-center text-sm text-muted-foreground">
-        <p>© 2024 Barbearia Elite. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} {displayName}. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

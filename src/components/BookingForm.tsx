@@ -11,9 +11,11 @@ import { format, addDays, isBefore, startOfDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock, User, Phone, Scissors, Check, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useBarbershop } from '@/hooks/useBarbershop';
 
 interface BookingFormProps {
   onBack: () => void;
+  barbershopId?: string;
 }
 
 type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -55,8 +57,9 @@ const validateMozambicanPhone = (phone: string): { isValid: boolean; formatted: 
   return { isValid: true, formatted };
 };
 
-export function BookingForm({ onBack }: BookingFormProps) {
+export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   const { toast } = useToast();
+  const { barbershop } = useBarbershop();
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<Service[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -66,6 +69,9 @@ export function BookingForm({ onBack }: BookingFormProps) {
   const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState('+258840000000');
   const [phoneError, setPhoneError] = useState<string>('');
+
+  // Use barbershopId from props or from context
+  const currentBarbershopId = barbershopId || barbershop?.id;
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -77,8 +83,10 @@ export function BookingForm({ onBack }: BookingFormProps) {
   });
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (currentBarbershopId) {
+      fetchData();
+    }
+  }, [currentBarbershopId]);
 
   useEffect(() => {
     if (formData.barberId && formData.appointmentDate) {
@@ -87,10 +95,11 @@ export function BookingForm({ onBack }: BookingFormProps) {
   }, [formData.barberId, formData.appointmentDate]);
 
   const fetchData = async () => {
-    const [servicesRes, barbersRes, settingsRes] = await Promise.all([
-      supabase.from('services').select('*').eq('active', true),
-      supabase.from('barbers').select('*').eq('active', true),
-      supabase.from('settings').select('*').limit(1).maybeSingle(),
+    if (!currentBarbershopId) return;
+
+    const [servicesRes, barbersRes] = await Promise.all([
+      supabase.from('services').select('*').eq('active', true).eq('barbershop_id', currentBarbershopId),
+      supabase.from('barbers').select('*').eq('active', true).eq('barbershop_id', currentBarbershopId),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as Service[]);
@@ -101,17 +110,22 @@ export function BookingForm({ onBack }: BookingFormProps) {
       }));
       setBarbers(mappedBarbers);
     }
-    if (settingsRes.data) setWhatsappNumber(settingsRes.data.whatsapp_number || '+258840000000');
+    
+    // Get whatsapp from barbershop
+    if (barbershop?.whatsapp_number) {
+      setWhatsappNumber(barbershop.whatsapp_number);
+    }
   };
 
   const fetchAppointmentsForDay = async () => {
-    if (!formData.appointmentDate) return;
+    if (!formData.appointmentDate || !currentBarbershopId) return;
 
     const { data } = await supabase
       .from('appointments')
       .select('*')
       .eq('barber_id', formData.barberId)
       .eq('appointment_date', format(formData.appointmentDate, 'yyyy-MM-dd'))
+      .eq('barbershop_id', currentBarbershopId)
       .neq('status', 'cancelled');
 
     if (data) {
@@ -160,7 +174,7 @@ export function BookingForm({ onBack }: BookingFormProps) {
 
   const handleSubmit = async () => {
     if (!formData.clientName || !formData.clientPhone || !formData.serviceId || 
-        !formData.barberId || !formData.appointmentDate || !formData.appointmentTime) {
+        !formData.barberId || !formData.appointmentDate || !formData.appointmentTime || !currentBarbershopId) {
       toast({
         title: 'Erro',
         description: 'Por favor, preencha todos os campos.',
@@ -182,6 +196,7 @@ export function BookingForm({ onBack }: BookingFormProps) {
           appointment_date: format(formData.appointmentDate, 'yyyy-MM-dd'),
           appointment_time: formData.appointmentTime,
           status: 'pending',
+          barbershop_id: currentBarbershopId,
         })
         .select('*')
         .single();
@@ -474,30 +489,37 @@ export function BookingForm({ onBack }: BookingFormProps) {
             <CardHeader>
               <CardTitle className="text-xl font-display flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-primary" />
-                Escolha a data e hora
+                Escolha a data e horário
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-center">
-                <Calendar
-                  mode="single"
-                  selected={formData.appointmentDate}
-                  onSelect={(date) => setFormData({ ...formData, appointmentDate: date, appointmentTime: '' })}
-                  disabled={(date) => isBefore(date, startOfDay(new Date())) || date > addDays(new Date(), 30)}
-                  locale={pt}
-                  className="rounded-lg border border-border"
-                />
+              <div className="space-y-2">
+                <Label>Data</Label>
+                <div className="flex justify-center">
+                  <Calendar
+                    mode="single"
+                    selected={formData.appointmentDate}
+                    onSelect={(date) => setFormData({ ...formData, appointmentDate: date, appointmentTime: '' })}
+                    disabled={(date) => isBefore(date, startOfDay(new Date())) || isBefore(date, addDays(new Date(), -1))}
+                    locale={pt}
+                    className="rounded-md border border-border bg-card"
+                  />
+                </div>
               </div>
 
               {formData.appointmentDate && (
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Horários disponíveis
+                    <Clock className="w-4 h-4 text-primary" />
+                    Horário disponível
                   </Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {timeSlots.length > 0 ? (
-                      timeSlots.map((time) => (
+                  {timeSlots.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhum horário disponível nesta data.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {timeSlots.map((time) => (
                         <Button
                           key={time}
                           variant={formData.appointmentTime === time ? 'gold' : 'outline'}
@@ -507,13 +529,9 @@ export function BookingForm({ onBack }: BookingFormProps) {
                         >
                           {time}
                         </Button>
-                      ))
-                    ) : (
-                      <p className="col-span-4 text-center text-muted-foreground py-4">
-                        Nenhum horário disponível para esta data.
-                      </p>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

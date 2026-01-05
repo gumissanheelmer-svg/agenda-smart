@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { supabase } from '@/integrations/supabase/client';
 import { Scissors, Plus, Edit2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Service {
   id: string;
@@ -19,21 +20,47 @@ interface Service {
 
 export default function ServicesList() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [formData, setFormData] = useState({ name: '', price: '', duration: '', active: true });
+  const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchServices();
-  }, []);
+    if (user) {
+      fetchBarbershopId();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (barbershopId) {
+      fetchServices();
+    }
+  }, [barbershopId]);
+
+  const fetchBarbershopId = async () => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('barbershop_id')
+      .eq('user_id', user?.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (data?.barbershop_id) {
+      setBarbershopId(data.barbershop_id);
+    }
+  };
 
   const fetchServices = async () => {
+    if (!barbershopId) return;
+    
     setIsLoading(true);
     const { data, error } = await supabase
       .from('services')
       .select('id, name, price, duration, active')
+      .eq('barbershop_id', barbershopId)
       .order('name');
 
     if (error) {
@@ -45,7 +72,7 @@ export default function ServicesList() {
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.price || !formData.duration) {
+    if (!formData.name.trim() || !formData.price || !formData.duration || !barbershopId) {
       toast({
         title: 'Erro',
         description: 'Preencha todos os campos.',
@@ -75,7 +102,9 @@ export default function ServicesList() {
         fetchServices();
       }
     } else {
-      const { error } = await supabase.from('services').insert(serviceData);
+      const { error } = await supabase
+        .from('services')
+        .insert({ ...serviceData, barbershop_id: barbershopId });
 
       if (error) {
         toast({ title: 'Erro', description: 'Não foi possível criar.', variant: 'destructive' });

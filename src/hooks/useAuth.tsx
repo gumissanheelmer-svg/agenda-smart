@@ -7,6 +7,7 @@ interface BarberAccountInfo {
   name: string;
   barber_id: string | null;
   approval_status: 'pending' | 'approved' | 'rejected' | 'blocked';
+  barbershop_id: string | null;
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   isBarber: boolean;
   isApprovedBarber: boolean;
   barberAccount: BarberAccountInfo | null;
+  barbershopId: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -31,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isBarber, setIsBarber] = useState(false);
   const [isApprovedBarber, setIsApprovedBarber] = useState(false);
   const [barberAccount, setBarberAccount] = useState<BarberAccountInfo | null>(null);
+  const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -67,14 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsBarber(false);
     setIsApprovedBarber(false);
     setBarberAccount(null);
+    setBarbershopId(null);
   };
 
   const checkUserRoles = async (userId: string) => {
     try {
-      // Check admin role
+      // Check admin role and get barbershop_id
       const { data: adminData, error: adminError } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, barbershop_id')
         .eq('user_id', userId)
         .eq('role', 'admin')
         .maybeSingle();
@@ -83,11 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error checking admin role:', adminError);
       }
       setIsAdmin(!!adminData);
+      if (adminData?.barbershop_id) {
+        setBarbershopId(adminData.barbershop_id);
+      }
 
       // Check barber account and status
       const { data: barberData, error: barberError } = await supabase
         .from('barber_accounts')
-        .select('id, name, barber_id, approval_status')
+        .select('id, name, barber_id, approval_status, barbershop_id')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -103,6 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsBarber(true);
         setBarberAccount(barberData as BarberAccountInfo);
         setIsApprovedBarber(barberData.approval_status === 'approved');
+        if (barberData.barbershop_id) {
+          setBarbershopId(barberData.barbershop_id);
+        }
       } else {
         setIsBarber(false);
         setIsApprovedBarber(false);
@@ -166,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isBarber, 
       isApprovedBarber, 
       barberAccount,
+      barbershopId,
       isLoading, 
       signIn, 
       signUp, 

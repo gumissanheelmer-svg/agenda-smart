@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Users, Scissors, Clock } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardStats {
   todayAppointments: number;
@@ -15,6 +16,7 @@ interface DashboardStats {
 }
 
 export default function DashboardOverview() {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     todayAppointments: 0,
     weekAppointments: 0,
@@ -25,12 +27,38 @@ export default function DashboardOverview() {
   });
   const [recentAppointments, setRecentAppointments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (user) {
+      fetchBarbershopId();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (barbershopId) {
+      fetchDashboardData();
+    }
+  }, [barbershopId]);
+
+  const fetchBarbershopId = async () => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('barbershop_id')
+      .eq('user_id', user?.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (data?.barbershop_id) {
+      setBarbershopId(data.barbershop_id);
+    } else {
+      setIsLoading(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
+    if (!barbershopId) return;
+    
     setIsLoading(true);
     const today = format(new Date(), 'yyyy-MM-dd');
     const weekStart = format(startOfWeek(new Date(), { locale: pt }), 'yyyy-MM-dd');
@@ -47,13 +75,13 @@ export default function DashboardOverview() {
       servicesRes,
       recentRes
     ] = await Promise.all([
-      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('appointment_date', today),
-      supabase.from('appointments').select('id', { count: 'exact', head: true }).gte('appointment_date', weekStart).lte('appointment_date', weekEnd),
-      supabase.from('appointments').select('id', { count: 'exact', head: true }).gte('appointment_date', monthStart).lte('appointment_date', monthEnd),
-      supabase.from('appointments').select('client_phone', { count: 'exact', head: true }),
-      supabase.from('barbers').select('id', { count: 'exact', head: true }).eq('active', true),
-      supabase.from('services').select('id', { count: 'exact', head: true }).eq('active', true),
-      supabase.from('appointments').select('*, barber:barbers(name), service:services(name)').order('created_at', { ascending: false }).limit(5),
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('barbershop_id', barbershopId).eq('appointment_date', today),
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('barbershop_id', barbershopId).gte('appointment_date', weekStart).lte('appointment_date', weekEnd),
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('barbershop_id', barbershopId).gte('appointment_date', monthStart).lte('appointment_date', monthEnd),
+      supabase.from('appointments').select('client_phone', { count: 'exact', head: true }).eq('barbershop_id', barbershopId),
+      supabase.from('barbers').select('id', { count: 'exact', head: true }).eq('barbershop_id', barbershopId).eq('active', true),
+      supabase.from('services').select('id', { count: 'exact', head: true }).eq('barbershop_id', barbershopId).eq('active', true),
+      supabase.from('appointments').select('*, barber:barbers(name), service:services(name)').eq('barbershop_id', barbershopId).order('created_at', { ascending: false }).limit(5),
     ]);
 
     setStats({
@@ -109,6 +137,22 @@ export default function DashboardOverview() {
             </Card>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (!barbershopId) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-display font-bold text-foreground">Dashboard</h1>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Nenhuma barbearia associada à sua conta.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Contacte o suporte para configurar a sua barbearia.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
