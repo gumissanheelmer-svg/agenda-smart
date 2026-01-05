@@ -226,20 +226,39 @@ export default function BarbershopRegister() {
         userId = authData.user.id;
       }
 
-      // Wait for session to be established (for new users)
-      if (!isExistingUser) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
-          // Try to sign in if session not immediately available (auto-confirm enabled)
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: formData.ownerEmail,
-            password: formData.ownerPassword,
-          });
-          if (signInError) {
-            console.warn('Auto sign-in failed, user may need to confirm email:', signInError.message);
-          }
+      // CRITICAL: Ensure session is active before creating barbershop
+      // For new users, signUp may not immediately establish a session
+      let sessionActive = false;
+      
+      // Check current session
+      const { data: currentSession } = await supabase.auth.getSession();
+      sessionActive = !!currentSession.session;
+      
+      // If no session, try to sign in (works with auto-confirm enabled)
+      if (!sessionActive) {
+        console.log('No active session, attempting sign in...');
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.ownerEmail,
+          password: formData.ownerPassword,
+        });
+        
+        if (signInError) {
+          // If sign in fails, user might need to confirm email
+          throw new Error('Falha ao estabelecer sessão. Por favor, confirme seu email e tente novamente.');
+        }
+        
+        if (signInData.session) {
+          sessionActive = true;
+          userId = signInData.user.id;
         }
       }
+      
+      // Final session check before proceeding
+      if (!sessionActive) {
+        throw new Error('Sessão não estabelecida. Tente fazer login novamente.');
+      }
+      
+      console.log('Session active, proceeding with barbershop creation for user:', userId);
 
       // 3. Upload logo if provided
       let logoUrl: string | null = null;
