@@ -12,7 +12,8 @@ import {
   LogOut,
   LayoutDashboard,
   UserCheck,
-  Menu
+  Menu,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
@@ -26,6 +27,7 @@ const navItems = [
   { to: '/admin/dashboard/accounts', icon: Users, label: 'Contas' },
   { to: '/admin/dashboard/services', icon: Scissors, label: 'Serviços' },
   { to: '/admin/dashboard/clients', icon: Users, label: 'Clientes' },
+  { to: '/admin/dashboard/expenses', icon: Wallet, label: 'Despesas' },
   { to: '/admin/dashboard/settings', icon: Settings, label: 'Configurações' },
 ];
 

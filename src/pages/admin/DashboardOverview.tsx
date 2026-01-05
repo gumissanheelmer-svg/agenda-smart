@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Scissors, Clock } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar, Users, Scissors, Clock, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, startOfYear, endOfYear } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface DashboardStats {
   todayAppointments: number;
@@ -15,6 +17,24 @@ interface DashboardStats {
   activeBarbers: number;
   activeServices: number;
 }
+
+interface RevenueData {
+  date: string;
+  revenue: number;
+}
+
+interface BarberRevenue {
+  name: string;
+  revenue: number;
+}
+
+interface FinancialSummary {
+  totalRevenue: number;
+  totalExpenses: number;
+  netProfit: number;
+}
+
+type PeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export default function DashboardOverview() {
   const { user } = useAuth();
@@ -29,6 +49,16 @@ export default function DashboardOverview() {
   const [recentAppointments, setRecentAppointments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
+  
+  // Revenue states
+  const [period, setPeriod] = useState<PeriodType>('daily');
+  const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
+  const [barberRevenue, setBarberRevenue] = useState<BarberRevenue[]>([]);
+  const [financialSummary, setFinancialSummary] = useState<FinancialSummary>({
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+  });
 
   useEffect(() => {
     if (user) {
@@ -39,8 +69,11 @@ export default function DashboardOverview() {
   useEffect(() => {
     if (barbershopId) {
       fetchDashboardData();
+      fetchRevenueData();
+      fetchBarberRevenue();
+      fetchFinancialSummary();
     }
-  }, [barbershopId]);
+  }, [barbershopId, period]);
 
   const fetchBarbershopId = async () => {
     const { data } = await supabase
@@ -101,6 +134,130 @@ export default function DashboardOverview() {
     setIsLoading(false);
   };
 
+  const fetchRevenueData = async () => {
+    if (!barbershopId) return;
+
+    let startDate: Date;
+    let dateFormat: string;
+
+    switch (period) {
+      case 'daily':
+        startDate = subDays(new Date(), 7);
+        dateFormat = 'dd/MM';
+        break;
+      case 'weekly':
+        startDate = subDays(new Date(), 28);
+        dateFormat = 'dd/MM';
+        break;
+      case 'monthly':
+        startDate = subMonths(new Date(), 6);
+        dateFormat = 'MMM';
+        break;
+      case 'yearly':
+        startDate = startOfYear(new Date());
+        dateFormat = 'MMM';
+        break;
+      default:
+        startDate = subDays(new Date(), 7);
+        dateFormat = 'dd/MM';
+    }
+
+    const { data: appointments } = await supabase
+      .from('appointments')
+      .select('appointment_date, service_id, services(price)')
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'completed')
+      .gte('appointment_date', format(startDate, 'yyyy-MM-dd'));
+
+    if (!appointments) {
+      setRevenueData([]);
+      return;
+    }
+
+    // Group by date
+    const revenueByDate: Record<string, number> = {};
+    appointments.forEach((apt: any) => {
+      const dateKey = format(new Date(apt.appointment_date), dateFormat, { locale: pt });
+      const price = apt.services?.price || 0;
+      revenueByDate[dateKey] = (revenueByDate[dateKey] || 0) + Number(price);
+    });
+
+    const chartData = Object.entries(revenueByDate).map(([date, revenue]) => ({
+      date,
+      revenue,
+    }));
+
+    setRevenueData(chartData);
+  };
+
+  const fetchBarberRevenue = async () => {
+    if (!barbershopId) return;
+
+    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+
+    const { data: appointments } = await supabase
+      .from('appointments')
+      .select('barber_id, barbers(name), services(price)')
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'completed')
+      .gte('appointment_date', monthStart);
+
+    if (!appointments) {
+      setBarberRevenue([]);
+      return;
+    }
+
+    // Group by barber
+    const revenueByBarber: Record<string, { name: string; revenue: number }> = {};
+    appointments.forEach((apt: any) => {
+      const barberId = apt.barber_id;
+      const barberName = apt.barbers?.name || 'Desconhecido';
+      const price = apt.services?.price || 0;
+      
+      if (!revenueByBarber[barberId]) {
+        revenueByBarber[barberId] = { name: barberName, revenue: 0 };
+      }
+      revenueByBarber[barberId].revenue += Number(price);
+    });
+
+    const chartData = Object.values(revenueByBarber)
+      .sort((a, b) => b.revenue - a.revenue);
+
+    setBarberRevenue(chartData);
+  };
+
+  const fetchFinancialSummary = async () => {
+    if (!barbershopId) return;
+
+    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+
+    const [revenueRes, expensesRes] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('services(price)')
+        .eq('barbershop_id', barbershopId)
+        .eq('status', 'completed')
+        .gte('appointment_date', monthStart)
+        .lte('appointment_date', monthEnd),
+      supabase
+        .from('expenses')
+        .select('amount')
+        .eq('barbershop_id', barbershopId)
+        .gte('expense_date', monthStart)
+        .lte('expense_date', monthEnd),
+    ]);
+
+    const totalRevenue = revenueRes.data?.reduce((sum: number, apt: any) => sum + Number(apt.services?.price || 0), 0) || 0;
+    const totalExpenses = expensesRes.data?.reduce((sum: number, exp: any) => sum + Number(exp.amount || 0), 0) || 0;
+
+    setFinancialSummary({
+      totalRevenue,
+      totalExpenses,
+      netProfit: totalRevenue - totalExpenses,
+    });
+  };
+
   const statCards = [
     { title: 'Agendamentos Hoje', value: stats.todayAppointments, icon: Calendar, color: 'text-primary' },
     { title: 'Esta Semana', value: stats.weekAppointments, icon: Clock, color: 'text-blue-500' },
@@ -124,6 +281,16 @@ export default function DashboardOverview() {
     };
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>{labels[status]}</span>;
   };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-MZ', { 
+      style: 'currency', 
+      currency: 'MZN',
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const barColors = ['hsl(var(--primary))', 'hsl(142 76% 36%)', 'hsl(217 91% 60%)', 'hsl(280 67% 55%)', 'hsl(32 95% 50%)'];
 
   if (isLoading) {
     return (
@@ -182,39 +349,169 @@ export default function DashboardOverview() {
         ))}
       </div>
 
-      {/* Recent Appointments */}
+      {/* Financial Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Receita do Mês</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(financialSummary.totalRevenue)}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Despesas do Mês</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(financialSummary.totalExpenses)}</p>
+              </div>
+              <TrendingDown className="w-8 h-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className={`border-border/50 bg-card/80 ${financialSummary.netProfit >= 0 ? 'border-green-500/30' : 'border-red-500/30'}`}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Lucro Líquido</p>
+                <p className={`text-2xl font-bold mt-1 ${financialSummary.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {formatCurrency(financialSummary.netProfit)}
+                </p>
+              </div>
+              <Wallet className={`w-8 h-8 ${financialSummary.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Revenue Chart */}
       <Card className="border-border/50 bg-card/80">
-        <CardHeader>
-          <CardTitle className="font-display">Agendamentos Recentes</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="font-display">Receitas ao Longo do Tempo</CardTitle>
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as PeriodType)}>
+            <TabsList className="bg-secondary/50">
+              <TabsTrigger value="daily" className="text-xs">Diário</TabsTrigger>
+              <TabsTrigger value="weekly" className="text-xs">Semanal</TabsTrigger>
+              <TabsTrigger value="monthly" className="text-xs">Mensal</TabsTrigger>
+              <TabsTrigger value="yearly" className="text-xs">Anual</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentAppointments.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">Nenhum agendamento ainda.</p>
-            ) : (
-              recentAppointments.map((apt) => (
-                <div key={apt.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{apt.client_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {apt.service?.name} com {apt.barber?.name}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-foreground">
-                      {format(new Date(apt.appointment_date), "dd 'de' MMM", { locale: pt })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{apt.appointment_time}</p>
-                  </div>
-                  <div className="ml-4">
-                    {getStatusBadge(apt.status)}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          {revenueData.length === 0 ? (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              Nenhum dado de receita disponível para este período.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={revenueData}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `${v / 1000}k`} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                  formatter={(value: number) => [formatCurrency(value), 'Receita']}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorRevenue)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
+
+      {/* Barber Performance Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader>
+            <CardTitle className="font-display">Receita por Barbeiro (Este Mês)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {barberRevenue.length === 0 ? (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                Nenhum dado disponível.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={barberRevenue} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `${v / 1000}k`} />
+                  <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={80} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))'
+                    }}
+                    formatter={(value: number) => [formatCurrency(value), 'Receita']}
+                  />
+                  <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
+                    {barberRevenue.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Appointments */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader>
+            <CardTitle className="font-display">Agendamentos Recentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentAppointments.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Nenhum agendamento ainda.</p>
+              ) : (
+                recentAppointments.slice(0, 4).map((apt) => (
+                  <div key={apt.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground text-sm">{apt.client_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {apt.service?.name} • {apt.barber?.name}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-foreground">
+                        {format(new Date(apt.appointment_date), "dd/MM", { locale: pt })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{apt.appointment_time}</p>
+                    </div>
+                    <div className="ml-3">
+                      {getStatusBadge(apt.status)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
