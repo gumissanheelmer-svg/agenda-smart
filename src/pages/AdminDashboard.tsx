@@ -82,11 +82,23 @@ export default function AdminDashboard() {
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+
   useEffect(() => {
-    if (!isLoading && (!user || !isAdmin)) {
+    if (!isLoading) {
+      // Give extra time for role verification to complete
+      const timer = setTimeout(() => {
+        setHasCheckedAuth(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (hasCheckedAuth && (!user || !isAdmin)) {
       navigate('/login');
     }
-  }, [user, isAdmin, isLoading, navigate]);
+  }, [hasCheckedAuth, user, isAdmin, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -95,7 +107,7 @@ export default function AdminDashboard() {
 
   const closeMenu = () => setMenuOpen(false);
 
-  if (isLoading) {
+  if (isLoading || !hasCheckedAuth) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse">

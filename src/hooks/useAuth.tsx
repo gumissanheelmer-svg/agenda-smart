@@ -22,6 +22,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshRoles: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -168,6 +169,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetRoles();
   };
 
+  const refreshRoles = async () => {
+    if (user) {
+      await checkUserRoles(user.id);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -180,7 +187,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading, 
       signIn, 
       signUp, 
-      signOut 
+      signOut,
+      refreshRoles
     }}>
       {children}
     </AuthContext.Provider>

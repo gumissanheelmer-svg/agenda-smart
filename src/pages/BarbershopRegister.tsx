@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,6 +33,7 @@ interface FormData {
 export default function BarbershopRegister() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshRoles } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -252,10 +254,13 @@ export default function BarbershopRegister() {
         description: "Você será redirecionado para o painel administrativo.",
       });
 
-      // Redirect to admin dashboard
-      setTimeout(() => {
-        navigate('/admin/dashboard');
-      }, 1500);
+      // Refresh roles to ensure isAdmin is true before redirecting
+      await refreshRoles();
+      
+      // Give a small delay for state to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      navigate('/admin/dashboard');
 
     } catch (error: any) {
       console.error('Registration error:', error);
