@@ -65,12 +65,20 @@ export default function BarbershopList() {
         {/* Header */}
         <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
           <Logo size="sm" />
-          <Link 
-            to="/login"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Entrar
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link 
+              to="/register"
+              className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Criar Barbearia
+            </Link>
+            <Link 
+              to="/login"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Entrar
+            </Link>
+          </div>
         </header>
 
         {/* Main content */}
@@ -92,9 +100,16 @@ export default function BarbershopList() {
               <h2 className="text-xl font-semibold text-foreground mb-2">
                 Nenhuma barbearia disponível
               </h2>
-              <p className="text-muted-foreground">
-                Volte mais tarde para ver as barbearias disponíveis.
+              <p className="text-muted-foreground mb-6">
+                Seja o primeiro a registrar sua barbearia!
               </p>
+              <Link 
+                to="/register"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Scissors className="w-5 h-5" />
+                Criar Minha Barbearia
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -20,6 +20,7 @@ import SettingsPage from "./pages/admin/SettingsPage";
 import BarberAccountsPage from "./pages/admin/BarberAccountsPage";
 import BarberRegister from "./pages/BarberRegister";
 import BarberDashboard from "./pages/BarberDashboard";
+import BarbershopRegister from "./pages/BarbershopRegister";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
                   <Route path="/admin" element={<Login />} />
                   <Route path="/barber/login" element={<Login />} />
                   <Route path="/barber/register" element={<BarberRegister />} />
+                  <Route path="/register" element={<BarbershopRegister />} />
                   
                   {/* Admin routes */}
                   <Route path="/admin/dashboard" element={<AdminDashboard />}>
