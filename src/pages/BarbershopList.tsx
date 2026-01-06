@@ -8,8 +8,8 @@ export default function BarbershopList() {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <Helmet>
-        <title>Sistema de Agendamento para Barbearias</title>
-        <meta name="description" content="Sistema completo de agendamento online para barbearias. Gerencie seus clientes, barbeiros e horários de forma simples e eficiente." />
+        <title>Agendou - Sistema de Agendamento para Barbearias e Salões</title>
+        <meta name="description" content="Sistema completo de agendamento online para barbearias, salões de beleza e muito mais. Gerencie seus clientes e equipe de forma simples." />
       </Helmet>
 
       {/* Background decorations */}
@@ -24,7 +24,7 @@ export default function BarbershopList() {
         <div className="flex items-center gap-3">
           <Link to="/register">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              Criar Barbearia
+              Criar Meu Negócio
             </Button>
           </Link>
           <Link to="/login">
@@ -47,14 +47,14 @@ export default function BarbershopList() {
             style={{ animationDelay: '0.2s' }}
           >
             Sistema de Agendamento para{' '}
-            <span className="text-primary">Barbearias</span>
+            <span className="text-primary">Barbearias e Salões</span>
           </h1>
 
           <p 
             className="mt-4 text-lg md:text-xl text-muted-foreground max-w-xl animate-slide-up"
             style={{ animationDelay: '0.3s' }}
           >
-            Gerencie sua barbearia de forma simples. Seus clientes agendam online, você foca no que importa.
+            Gerencie seu negócio de forma simples. Seus clientes agendam online, você foca no que realmente importa.
           </p>
 
           <div 
@@ -64,7 +64,7 @@ export default function BarbershopList() {
             <Link to="/register">
               <Button variant="hero" size="xl">
                 <Scissors className="w-5 h-5 mr-2" />
-                Criar Minha Barbearia
+                Começar Agora - É Grátis
               </Button>
             </Link>
           </div>
@@ -73,7 +73,7 @@ export default function BarbershopList() {
             className="mt-6 text-sm text-muted-foreground animate-slide-up"
             style={{ animationDelay: '0.5s' }}
           >
-            É cliente? Peça o link de agendamento ao seu barbeiro.
+            É cliente? Peça o link de agendamento ao seu profissional.
           </p>
         </section>
 
@@ -81,7 +81,7 @@ export default function BarbershopList() {
         <section className="py-20 px-6">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-12">
-              Tudo que você precisa para gerir sua barbearia
+              Tudo que você precisa para gerir seu negócio
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -98,7 +98,7 @@ export default function BarbershopList() {
                   <Users className="w-7 h-7 text-primary" />
                 </div>
                 <h3 className="font-semibold text-foreground mb-2">Gestão de Equipe</h3>
-                <p className="text-sm text-muted-foreground">Cadastre barbeiros e distribua os agendamentos automaticamente</p>
+                <p className="text-sm text-muted-foreground">Cadastre profissionais e distribua os agendamentos automaticamente</p>
               </div>
 
               <div className="flex flex-col items-center p-6 rounded-xl bg-card/50 border border-border/50 backdrop-blur text-center">
@@ -114,7 +114,7 @@ export default function BarbershopList() {
                   <MessageSquare className="w-7 h-7 text-primary" />
                 </div>
                 <h3 className="font-semibold text-foreground mb-2">Link Exclusivo</h3>
-                <p className="text-sm text-muted-foreground">Sua barbearia com link próprio para compartilhar com clientes</p>
+                <p className="text-sm text-muted-foreground">Seu negócio com link próprio para compartilhar com clientes</p>
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default function BarbershopList() {
               Pronto para começar?
             </h2>
             <p className="text-muted-foreground mb-8">
-              Crie sua barbearia em minutos e comece a receber agendamentos hoje mesmo.
+              Crie seu espaço em minutos e comece a receber agendamentos hoje mesmo.
             </p>
             <Link to="/register">
               <Button variant="hero" size="lg">
@@ -141,7 +141,7 @@ export default function BarbershopList() {
 
       {/* Footer */}
       <footer className="relative z-10 py-8 text-center text-sm text-muted-foreground border-t border-border/50">
-        <p>© {new Date().getFullYear()} Sistema de Agendamento. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} Agendou. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
