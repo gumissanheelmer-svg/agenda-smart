@@ -134,7 +134,7 @@ export default function BarberRegister() {
     return (
       <>
         <Helmet>
-          <title>Conta Criada - Barbearia Elite</title>
+          <title>Conta Criada - Sistema de Agendamento</title>
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
 
@@ -182,7 +182,7 @@ export default function BarberRegister() {
   return (
     <>
       <Helmet>
-        <title>Criar Conta Barbeiro - Barbearia Elite</title>
+        <title>Criar Conta Profissional - Sistema de Agendamento</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
@@ -201,7 +201,7 @@ export default function BarberRegister() {
           <Card className="border-border/50 bg-card/80 backdrop-blur">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-display">
-                Criar Conta – Barbeiro
+                Criar Conta – Profissional
               </CardTitle>
               <CardDescription>
                 Preencha os dados para solicitar acesso ao sistema

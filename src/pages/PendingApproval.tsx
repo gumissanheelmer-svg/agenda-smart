@@ -51,8 +51,8 @@ export default function PendingApproval() {
               )}
               
               <p className="text-muted-foreground mb-6">
-                A sua barbearia está em análise pelo administrador do sistema. 
-                Assim que for aprovada, você receberá acesso ao painel administrativo.
+                O seu negócio está em análise pelo administrador do sistema. 
+                Assim que for aprovado, você receberá acesso ao painel administrativo.
               </p>
 
               <div className="bg-muted/50 rounded-lg p-4 mb-6 text-left">

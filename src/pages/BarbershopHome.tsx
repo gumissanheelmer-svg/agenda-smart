@@ -34,7 +34,7 @@ export default function BarbershopHome() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <Logo size="lg" />
         <h1 className="mt-8 text-2xl font-display text-foreground">
-          Barbearia não encontrada
+          Negócio não encontrado
         </h1>
         <p className="text-muted-foreground mt-2">
           O link que você está a aceder não existe ou foi desativado.
@@ -55,7 +55,7 @@ export default function BarbershopHome() {
         <title>{barbershop.name} - Agendamento Online | Moçambique</title>
         <meta 
           name="description" 
-          content={`Agende seu corte de cabelo ou barba online na ${barbershop.name}. Profissionais experientes, atendimento de qualidade em Moçambique.`} 
+          content={`Agende seu atendimento online na ${barbershop.name}. Profissionais experientes, atendimento de qualidade em Moçambique.`} 
         />
       </Helmet>
       

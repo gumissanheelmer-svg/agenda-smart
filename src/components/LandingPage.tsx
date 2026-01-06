@@ -94,7 +94,7 @@ export function LandingPage({ onBookNow, barbershopName, logoUrl }: LandingPageP
               <Star className="w-6 h-6 text-primary" />
             </div>
             <h3 className="font-semibold text-foreground">Profissionais Top</h3>
-            <p className="text-sm text-muted-foreground mt-1">Barbeiros experientes</p>
+            <p className="text-sm text-muted-foreground mt-1">Equipa experiente</p>
           </div>
 
           <div className="flex flex-col items-center p-6 rounded-xl bg-card/50 border border-border/50 backdrop-blur">

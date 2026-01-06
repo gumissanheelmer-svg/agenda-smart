@@ -299,7 +299,7 @@ export default function Login() {
                   to="/barber/register" 
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
-                  É barbeiro? Crie sua conta aqui
+                  É profissional? Crie sua conta aqui
                 </Link>
                 <div>
                   <Button variant="ghost" size="sm" onClick={() => navigate('/')}>

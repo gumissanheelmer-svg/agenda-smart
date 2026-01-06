@@ -131,7 +131,7 @@ export default function BarberAccountsPage() {
       toast({
         title: 'Sucesso',
         description: actionType === 'approve' 
-          ? 'Conta aprovada! O barbeiro já pode acessar o sistema.'
+          ? `Conta aprovada! O ${professionalLabel.toLowerCase()} já pode acessar o sistema.`
           : actionType === 'reject'
           ? 'Conta rejeitada.'
           : 'Conta bloqueada.',
@@ -388,7 +388,7 @@ export default function BarberAccountsPage() {
             <AlertDialogDescription>
               {actionType === 'approve' && (
                 <>
-                  Ao aprovar, <strong>{selectedAccount?.name}</strong> terá acesso imediato ao painel de barbeiro.
+                  Ao aprovar, <strong>{selectedAccount?.name}</strong> terá acesso imediato ao painel de {professionalLabel.toLowerCase()}.
                 </>
               )}
               {actionType === 'reject' && (

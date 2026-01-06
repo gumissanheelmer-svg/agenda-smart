@@ -106,7 +106,7 @@ export default function BarberDashboard() {
 
   const openWhatsApp = (phone: string, clientName: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
-    const message = encodeURIComponent(`Olá ${clientName}! Aqui é da Barbearia Elite.`);
+    const message = encodeURIComponent(`Olá ${clientName}! Aqui é do seu estabelecimento de beleza.`);
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
 
@@ -142,7 +142,7 @@ export default function BarberDashboard() {
   return (
     <>
       <Helmet>
-        <title>Painel do Barbeiro - Barbearia Elite</title>
+        <title>Painel do Profissional - Sistema de Agendamento</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 

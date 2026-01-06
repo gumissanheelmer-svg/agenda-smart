@@ -7,6 +7,7 @@ import { Calendar, Users, Scissors, Clock, TrendingUp, TrendingDown, Wallet } fr
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, startOfYear, endOfYear } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminBarbershop } from '@/hooks/useAdminBarbershop';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface DashboardStats {
@@ -38,6 +39,7 @@ type PeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export default function DashboardOverview() {
   const { user } = useAuth();
+  const { barbershop } = useAdminBarbershop();
   const [stats, setStats] = useState<DashboardStats>({
     todayAppointments: 0,
     weekAppointments: 0,
@@ -258,11 +260,17 @@ export default function DashboardOverview() {
     });
   };
 
+  const businessType = barbershop?.business_type || 'barbearia';
+  const isBarbershop = businessType === 'barbearia';
+  const professionalsLabel = isBarbershop ? 'Barbeiros Ativos' : 'Profissionais Ativos';
+  const professionalLabel = isBarbershop ? 'Barbeiro' : 'Profissional';
+  const businessLabel = isBarbershop ? 'barbearia' : 'negócio';
+
   const statCards = [
     { title: 'Agendamentos Hoje', value: stats.todayAppointments, icon: Calendar, color: 'text-primary' },
     { title: 'Esta Semana', value: stats.weekAppointments, icon: Clock, color: 'text-blue-500' },
     { title: 'Este Mês', value: stats.monthAppointments, icon: Calendar, color: 'text-green-500' },
-    { title: 'Barbeiros Ativos', value: stats.activeBarbers, icon: Users, color: 'text-purple-500' },
+    { title: professionalsLabel, value: stats.activeBarbers, icon: Users, color: 'text-purple-500' },
     { title: 'Serviços Ativos', value: stats.activeServices, icon: Scissors, color: 'text-orange-500' },
   ];
 
@@ -315,12 +323,12 @@ export default function DashboardOverview() {
         <h1 className="text-3xl font-display font-bold text-foreground">Dashboard</h1>
         <Card className="border-border/50 bg-card/80">
           <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground">Bem-vindo! Configure sua barbearia para começar.</p>
+            <p className="text-muted-foreground">Bem-vindo! Configure seu {businessLabel} para começar.</p>
             <Button 
               className="mt-4" 
               onClick={() => window.location.href = '/register'}
             >
-              Criar Barbearia
+              Criar Negócio
             </Button>
           </CardContent>
         </Card>
@@ -445,7 +453,7 @@ export default function DashboardOverview() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-border/50 bg-card/80">
           <CardHeader>
-            <CardTitle className="font-display">Receita por Barbeiro (Este Mês)</CardTitle>
+            <CardTitle className="font-display">Receita por {professionalLabel} (Este Mês)</CardTitle>
           </CardHeader>
           <CardContent>
             {barberRevenue.length === 0 ? (
