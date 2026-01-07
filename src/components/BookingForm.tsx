@@ -78,6 +78,8 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<ServiceData[]>([]);
   const [professionals, setProfessionals] = useState<ProfessionalData[]>([]);
+  const [allProfessionals, setAllProfessionals] = useState<ProfessionalData[]>([]);
+  const [serviceProfessionalMap, setServiceProfessionalMap] = useState<Map<string, string[]>>(new Map());
   const [existingAppointments, setExistingAppointments] = useState<ExistingAppointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -85,8 +87,10 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   const [whatsappNumber, setWhatsappNumber] = useState('+258840000000');
   const [phoneError, setPhoneError] = useState<string>('');
   const [bookingError, setBookingError] = useState<string>('');
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const currentBarbershopId = barbershopId || barbershop?.id;
+  const businessType = barbershop?.business_type || 'barbearia';
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -97,20 +101,20 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     appointmentTime: '',
   });
 
+  // Carregar todos os dados de uma vez (serviços, profissionais e mapeamentos)
   useEffect(() => {
-    if (currentBarbershopId) {
-      fetchServices();
+    if (currentBarbershopId && !dataLoaded) {
+      fetchAllData();
     }
   }, [currentBarbershopId]);
 
+  // Filtrar profissionais quando o serviço muda (sem chamada ao servidor)
   useEffect(() => {
-    if (formData.serviceId && currentBarbershopId) {
-      fetchProfessionalsForService();
-      // Reset profissional selecionado quando o serviço muda
+    if (formData.serviceId && dataLoaded) {
+      filterProfessionalsForService(formData.serviceId);
       setFormData(prev => ({ ...prev, barberId: '', appointmentTime: '' }));
-      setProfessionals([]);
     }
-  }, [formData.serviceId]);
+  }, [formData.serviceId, dataLoaded]);
 
   useEffect(() => {
     if (formData.barberId && formData.appointmentDate) {
@@ -118,64 +122,90 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     }
   }, [formData.barberId, formData.appointmentDate]);
 
-  const fetchServices = async () => {
+  // Carregar todos os dados necessários de uma vez
+  const fetchAllData = async () => {
     if (!currentBarbershopId) return;
 
-    // Usar a nova função RPC que valida o tipo de negócio
-    const { data, error } = await supabase.rpc('get_valid_services', { 
-      p_barbershop_id: currentBarbershopId 
-    });
+    try {
+      // Carregar serviços, profissionais e mapeamentos em paralelo
+      const [servicesRes, professionalsRes, mappingsRes] = await Promise.all([
+        supabase.rpc('get_valid_services', { p_barbershop_id: currentBarbershopId }),
+        supabase.rpc('get_public_professionals', { p_business_id: currentBarbershopId }),
+        supabase.from('service_professionals')
+          .select('service_id, professional_id')
+          .eq('barbershop_id', currentBarbershopId)
+      ]);
 
-    if (error) {
-      console.error('Error fetching services:', error);
-      // Fallback para método antigo
-      const fallbackRes = await supabase.rpc('get_public_services', { 
-        p_barbershop_id: currentBarbershopId 
-      });
-      if (fallbackRes.data) {
-        setServices(fallbackRes.data as ServiceData[]);
+      // Processar serviços
+      if (servicesRes.data) {
+        setServices(servicesRes.data as ServiceData[]);
+      } else if (servicesRes.error) {
+        // Fallback
+        const fallback = await supabase.rpc('get_public_services', { p_barbershop_id: currentBarbershopId });
+        if (fallback.data) setServices(fallback.data as ServiceData[]);
       }
-    } else if (data) {
-      setServices(data as ServiceData[]);
-    }
-    
-    if (barbershop?.whatsapp_number) {
-      setWhatsappNumber(barbershop.whatsapp_number);
-    }
-  };
 
-  const fetchProfessionalsForService = async () => {
-    if (!formData.serviceId || !currentBarbershopId) return;
-
-    // Usar a nova função RPC que busca profissionais por serviço
-    const { data, error } = await supabase.rpc('get_professionals_for_service', { 
-      p_service_id: formData.serviceId,
-      p_barbershop_id: currentBarbershopId 
-    });
-
-    if (error) {
-      console.error('Error fetching professionals:', error);
-      // Fallback para método antigo
-      const fallbackRes = await supabase.rpc('get_public_barbers', { 
-        p_barbershop_id: currentBarbershopId 
-      });
-      if (fallbackRes.data) {
-        const mapped = (fallbackRes.data as any[]).map(b => ({
+      // Processar profissionais
+      if (professionalsRes.data) {
+        const mapped = (professionalsRes.data as any[]).map(b => ({
           id: b.id,
           name: b.name,
           specialty: null,
           working_hours: b.working_hours as WorkingHours,
         }));
-        setProfessionals(mapped);
+        setAllProfessionals(mapped);
+      } else if (professionalsRes.error) {
+        // Fallback
+        const fallback = await supabase.rpc('get_public_barbers', { p_barbershop_id: currentBarbershopId });
+        if (fallback.data) {
+          const mapped = (fallback.data as any[]).map(b => ({
+            id: b.id,
+            name: b.name,
+            specialty: null,
+            working_hours: b.working_hours as WorkingHours,
+          }));
+          setAllProfessionals(mapped);
+        }
       }
-    } else if (data) {
-      const mapped = (data as any[]).map(b => ({
-        id: b.id,
-        name: b.name,
-        specialty: b.specialty,
-        working_hours: b.working_hours as WorkingHours,
-      }));
-      setProfessionals(mapped);
+
+      // Processar mapeamentos serviço-profissional
+      if (mappingsRes.data) {
+        const map = new Map<string, string[]>();
+        mappingsRes.data.forEach((m: any) => {
+          const existing = map.get(m.service_id) || [];
+          existing.push(m.professional_id);
+          map.set(m.service_id, existing);
+        });
+        setServiceProfessionalMap(map);
+      }
+
+      if (barbershop?.whatsapp_number) {
+        setWhatsappNumber(barbershop.whatsapp_number);
+      }
+
+      setDataLoaded(true);
+    } catch (error) {
+      console.error('Error fetching booking data:', error);
+      setDataLoaded(true);
+    }
+  };
+
+  // Filtrar profissionais localmente sem chamada ao servidor
+  const filterProfessionalsForService = (serviceId: string) => {
+    // Para barbearias, todos os profissionais podem executar qualquer serviço
+    if (businessType === 'barbearia') {
+      setProfessionals(allProfessionals);
+      return;
+    }
+
+    // Para salões e mistos, usar o mapeamento
+    const allowedIds = serviceProfessionalMap.get(serviceId) || [];
+    if (allowedIds.length === 0) {
+      // Se não há mapeamento, permitir todos (fallback)
+      setProfessionals(allProfessionals);
+    } else {
+      const filtered = allProfessionals.filter(p => allowedIds.includes(p.id));
+      setProfessionals(filtered);
     }
   };
 
