@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Service, Barber, Appointment, WorkingHours } from '@/lib/types';
+import { WorkingHours } from '@/lib/types';
 import { format, addDays, isBefore, startOfDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Clock, User, Phone, Scissors, Check, MessageCircle, Sparkles } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, User, Phone, Scissors, Check, MessageCircle, Sparkles, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBarbershop } from '@/hooks/useBarbershop';
 import { useBusinessType } from '@/hooks/useBusinessType';
@@ -19,7 +19,25 @@ interface BookingFormProps {
   barbershopId?: string;
 }
 
-type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'in_progress';
+interface ServiceData {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+}
+
+interface ProfessionalData {
+  id: string;
+  name: string;
+  specialty: string | null;
+  working_hours: WorkingHours;
+}
+
+interface ExistingAppointment {
+  id: string;
+  appointment_time: string;
+  service_id: string;
+}
 
 // Validação de telefone moçambicano (84, 85, 86, 87, 82, 83)
 const validateMozambicanPhone = (phone: string): { isValid: boolean; formatted: string; error?: string } => {
@@ -56,17 +74,17 @@ const validateMozambicanPhone = (phone: string): { isValid: boolean; formatted: 
 export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   const { toast } = useToast();
   const { barbershop } = useBarbershop();
-  const { professionalLabel, shouldFilterProfessionalsByService, isBarbershop } = useBusinessType();
+  const { professionalLabel, isBarbershop } = useBusinessType();
   const [step, setStep] = useState(1);
-  const [services, setServices] = useState<Service[]>([]);
-  const [barbers, setBarbers] = useState<Barber[]>([]);
-  const [filteredBarbers, setFilteredBarbers] = useState<Barber[]>([]);
-  const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
+  const [services, setServices] = useState<ServiceData[]>([]);
+  const [professionals, setProfessionals] = useState<ProfessionalData[]>([]);
+  const [existingAppointments, setExistingAppointments] = useState<ExistingAppointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
+  const [createdAppointment, setCreatedAppointment] = useState<any>(null);
   const [whatsappNumber, setWhatsappNumber] = useState('+258840000000');
   const [phoneError, setPhoneError] = useState<string>('');
+  const [bookingError, setBookingError] = useState<string>('');
 
   const currentBarbershopId = barbershopId || barbershop?.id;
 
@@ -81,9 +99,18 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
 
   useEffect(() => {
     if (currentBarbershopId) {
-      fetchData();
+      fetchServices();
     }
   }, [currentBarbershopId]);
+
+  useEffect(() => {
+    if (formData.serviceId && currentBarbershopId) {
+      fetchProfessionalsForService();
+      // Reset profissional selecionado quando o serviço muda
+      setFormData(prev => ({ ...prev, barberId: '', appointmentTime: '' }));
+      setProfessionals([]);
+    }
+  }, [formData.serviceId]);
 
   useEffect(() => {
     if (formData.barberId && formData.appointmentDate) {
@@ -91,36 +118,25 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     }
   }, [formData.barberId, formData.appointmentDate]);
 
-  // Filter professionals by service for salons
-  useEffect(() => {
-    if (shouldFilterProfessionalsByService && formData.serviceId && currentBarbershopId) {
-      fetchProfessionalsForService();
-    } else {
-      setFilteredBarbers(barbers);
-    }
-  }, [formData.serviceId, barbers, shouldFilterProfessionalsByService]);
-
-  const fetchData = async () => {
+  const fetchServices = async () => {
     if (!currentBarbershopId) return;
 
-    const [servicesRes, barbersRes] = await Promise.all([
-      supabase.rpc('get_public_services', { p_barbershop_id: currentBarbershopId }),
-      supabase.rpc('get_public_barbers', { p_barbershop_id: currentBarbershopId }),
-    ]);
+    // Usar a nova função RPC que valida o tipo de negócio
+    const { data, error } = await supabase.rpc('get_valid_services', { 
+      p_barbershop_id: currentBarbershopId 
+    });
 
-    if (servicesRes.data) setServices(servicesRes.data as Service[]);
-    if (barbersRes.data) {
-      const mappedBarbers: Barber[] = barbersRes.data.map((b: { id: string; name: string; working_hours: unknown }) => ({
-        id: b.id,
-        name: b.name,
-        phone: null,
-        active: true,
-        working_hours: b.working_hours as WorkingHours,
-        created_at: '',
-        updated_at: '',
-      }));
-      setBarbers(mappedBarbers);
-      setFilteredBarbers(mappedBarbers);
+    if (error) {
+      console.error('Error fetching services:', error);
+      // Fallback para método antigo
+      const fallbackRes = await supabase.rpc('get_public_services', { 
+        p_barbershop_id: currentBarbershopId 
+      });
+      if (fallbackRes.data) {
+        setServices(fallbackRes.data as ServiceData[]);
+      }
+    } else if (data) {
+      setServices(data as ServiceData[]);
     }
     
     if (barbershop?.whatsapp_number) {
@@ -131,31 +147,35 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   const fetchProfessionalsForService = async () => {
     if (!formData.serviceId || !currentBarbershopId) return;
 
-    // Query service_professionals table directly since RPC might not be in types yet
-    const { data: spData, error: spError } = await supabase
-      .from('service_professionals')
-      .select('professional_id')
-      .eq('service_id', formData.serviceId)
-      .eq('barbershop_id', currentBarbershopId);
+    // Usar a nova função RPC que busca profissionais por serviço
+    const { data, error } = await supabase.rpc('get_professionals_for_service', { 
+      p_service_id: formData.serviceId,
+      p_barbershop_id: currentBarbershopId 
+    });
 
-    if (spError) {
-      console.error('Error fetching service professionals:', spError);
-      setFilteredBarbers(barbers);
-      return;
-    }
-
-    if (spData && spData.length > 0) {
-      const professionalIds = spData.map(sp => sp.professional_id);
-      const filtered = barbers.filter(b => professionalIds.includes(b.id));
-      if (filtered.length > 0) {
-        setFilteredBarbers(filtered);
-      } else {
-        // Fallback to all barbers if no match
-        setFilteredBarbers(barbers);
+    if (error) {
+      console.error('Error fetching professionals:', error);
+      // Fallback para método antigo
+      const fallbackRes = await supabase.rpc('get_public_barbers', { 
+        p_barbershop_id: currentBarbershopId 
+      });
+      if (fallbackRes.data) {
+        const mapped = (fallbackRes.data as any[]).map(b => ({
+          id: b.id,
+          name: b.name,
+          specialty: null,
+          working_hours: b.working_hours as WorkingHours,
+        }));
+        setProfessionals(mapped);
       }
-    } else {
-      // No professionals assigned, show all (fallback for salons without service mapping)
-      setFilteredBarbers(barbers);
+    } else if (data) {
+      const mapped = (data as any[]).map(b => ({
+        id: b.id,
+        name: b.name,
+        specialty: b.specialty,
+        working_hours: b.working_hours as WorkingHours,
+      }));
+      setProfessionals(mapped);
     }
   };
 
@@ -164,25 +184,25 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
 
     const { data } = await supabase
       .from('appointments')
-      .select('*')
+      .select('id, appointment_time, service_id')
       .eq('barber_id', formData.barberId)
       .eq('appointment_date', format(formData.appointmentDate, 'yyyy-MM-dd'))
       .eq('barbershop_id', currentBarbershopId)
       .neq('status', 'cancelled');
 
     if (data) {
-      setExistingAppointments(data as Appointment[]);
+      setExistingAppointments(data);
     }
   };
 
   const generateTimeSlots = () => {
     const slots: string[] = [];
-    const selectedBarber = filteredBarbers.find(b => b.id === formData.barberId);
+    const selectedProfessional = professionals.find(p => p.id === formData.barberId);
     
-    if (!selectedBarber || !formData.appointmentDate) return slots;
+    if (!selectedProfessional || !formData.appointmentDate) return slots;
 
     const dayOfWeek = format(formData.appointmentDate, 'EEEE').toLowerCase() as keyof WorkingHours;
-    const dayHours = selectedBarber.working_hours[dayOfWeek];
+    const dayHours = selectedProfessional.working_hours?.[dayOfWeek];
     
     if (!dayHours) return slots;
 
@@ -192,16 +212,35 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     const selectedService = services.find(s => s.id === formData.serviceId);
     const serviceDuration = selectedService?.duration || 30;
 
-    const bookedTimes = existingAppointments.map(a => a.appointment_time);
+    // Criar mapa de horários ocupados com suas durações
+    const occupiedSlots: { start: number; end: number }[] = [];
+    existingAppointments.forEach(apt => {
+      const [h, m] = apt.appointment_time.split(':').map(Number);
+      const startMinutes = h * 60 + m;
+      // Buscar duração do serviço agendado (assumir 30 min se não encontrar)
+      const aptService = services.find(s => s.id === apt.service_id);
+      const aptDuration = aptService?.duration || 30;
+      occupiedSlots.push({ start: startMinutes, end: startMinutes + aptDuration });
+    });
 
-    for (let hour = startHour; hour < endHour; hour++) {
+    for (let hour = startHour; hour <= endHour; hour++) {
       for (let min = 0; min < 60; min += 30) {
         if (hour === startHour && min < startMin) continue;
-        if (hour === endHour - 1 && min + serviceDuration > 60 - endMin) continue;
-
-        const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
         
-        if (!bookedTimes.includes(timeStr)) {
+        const slotStartMinutes = hour * 60 + min;
+        const slotEndMinutes = slotStartMinutes + serviceDuration;
+        
+        // Verificar se o slot ultrapassa o horário de fechamento
+        const closeMinutes = endHour * 60 + endMin;
+        if (slotEndMinutes > closeMinutes) continue;
+
+        // Verificar se o slot colide com algum agendamento existente
+        const hasConflict = occupiedSlots.some(occupied => 
+          (slotStartMinutes < occupied.end && slotEndMinutes > occupied.start)
+        );
+
+        if (!hasConflict) {
+          const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
           slots.push(timeStr);
         }
       }
@@ -222,6 +261,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     }
 
     setIsLoading(true);
+    setBookingError('');
 
     const appointmentData = {
       client_name: formData.clientName.trim(),
@@ -233,9 +273,6 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
       status: 'pending',
       barbershop_id: currentBarbershopId,
     };
-    
-    console.log('=== BOOKING DEBUG ===');
-    console.log('Appointment data:', JSON.stringify(appointmentData, null, 2));
 
     try {
       const { data, error } = await supabase
@@ -245,17 +282,36 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
         .single();
 
       if (error) {
-        console.error('Supabase error details:', JSON.stringify(error, null, 2));
-        throw error;
+        console.error('Booking error:', error);
+        
+        // Extrair mensagem de erro amigável
+        let errorMessage = 'Não foi possível realizar o agendamento.';
+        if (error.message) {
+          if (error.message.includes('Horário indisponível')) {
+            errorMessage = 'Este horário não está mais disponível. Por favor, escolha outro horário.';
+          } else if (error.message.includes('profissional não realiza')) {
+            errorMessage = 'Este profissional não realiza o serviço selecionado.';
+          } else if (error.message.includes('Serviço não encontrado')) {
+            errorMessage = 'Serviço não disponível. Por favor, selecione outro.';
+          } else if (error.message.includes('Profissional não encontrado')) {
+            errorMessage = 'Profissional não disponível. Por favor, selecione outro.';
+          } else if (error.message.includes('Estabelecimento')) {
+            errorMessage = 'Estabelecimento temporariamente indisponível.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        setBookingError(errorMessage);
+        toast({
+          title: 'Erro ao agendar',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return;
       }
 
-      const mappedAppointment = {
-        ...data,
-        notes: data.notes || null,
-        status: data.status as Appointment['status']
-      } as Appointment;
-      
-      setCreatedAppointment(mappedAppointment);
+      setCreatedAppointment(data);
       setIsSuccess(true);
 
       toast({
@@ -277,8 +333,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   const getWhatsAppLink = () => {
     if (!createdAppointment) return '#';
 
-    const barberName = filteredBarbers.find(b => b.id === createdAppointment.barber_id)?.name || 
-                       barbers.find(b => b.id === createdAppointment.barber_id)?.name || 'N/A';
+    const professionalName = professionals.find(p => p.id === createdAppointment.barber_id)?.name || 'N/A';
     const service = services.find(s => s.id === createdAppointment.service_id);
     const serviceName = service?.name || 'N/A';
     const servicePrice = service?.price || 0;
@@ -288,7 +343,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     const message = encodeURIComponent(
       `Olá! Fiz um agendamento na ${barbershopName}\n\n` +
       `👤 Cliente: ${createdAppointment.client_name}\n` +
-      `👩‍💼 ${professionalLabel}: ${barberName}\n` +
+      `👩‍💼 ${professionalLabel}: ${professionalName}\n` +
       `💇‍♀️ Serviço: ${serviceName}\n` +
       `📅 Data: ${formattedDate}\n` +
       `⏰ Hora: ${createdAppointment.appointment_time}\n` +
@@ -301,8 +356,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   };
 
   if (isSuccess && createdAppointment) {
-    const barberName = filteredBarbers.find(b => b.id === createdAppointment.barber_id)?.name ||
-                       barbers.find(b => b.id === createdAppointment.barber_id)?.name;
+    const professionalName = professionals.find(p => p.id === createdAppointment.barber_id)?.name;
     const serviceName = services.find(s => s.id === createdAppointment.service_id)?.name;
 
     return (
@@ -327,7 +381,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{professionalLabel}:</span>
-                <span className="text-foreground font-medium">{barberName}</span>
+                <span className="text-foreground font-medium">{professionalName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Data:</span>
@@ -383,6 +437,14 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
             />
           ))}
         </div>
+
+        {/* Error message */}
+        {bookingError && (
+          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-destructive">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm">{bookingError}</span>
+          </div>
+        )}
 
         {/* Step 1: Client Info */}
         {step === 1 && (
@@ -476,9 +538,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
                 <Label>Serviço</Label>
                 <Select
                   value={formData.serviceId}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, serviceId: value, barberId: '' });
-                  }}
+                  onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
                 >
                   <SelectTrigger className="bg-input border-border">
                     <SelectValue placeholder="Selecione um serviço" />
@@ -486,61 +546,50 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
                   <SelectContent>
                     {services.map((service) => (
                       <SelectItem key={service.id} value={service.id}>
-                        <div className="flex justify-between items-center w-full">
-                          <span>{service.name}</span>
-                          <span className="text-muted-foreground ml-4">
-                            {service.price.toFixed(0)} MT • {service.duration}min
-                          </span>
-                        </div>
+                        {service.name} - {service.price.toFixed(0)} MT ({service.duration} min)
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>{professionalLabel}</Label>
-                <Select
-                  value={formData.barberId}
-                  onValueChange={(value) => setFormData({ ...formData, barberId: value })}
-                  disabled={shouldFilterProfessionalsByService && !formData.serviceId}
-                >
-                  <SelectTrigger className="bg-input border-border">
-                    <SelectValue placeholder={
-                      shouldFilterProfessionalsByService && !formData.serviceId 
-                        ? 'Selecione um serviço primeiro' 
-                        : `Selecione um ${professionalLabel.toLowerCase()}`
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredBarbers.map((barber) => (
-                      <SelectItem key={barber.id} value={barber.id}>
-                        {barber.name}
-                      </SelectItem>
-                    ))}
-                    {filteredBarbers.length === 0 && (
-                      <div className="px-2 py-4 text-center text-muted-foreground text-sm">
-                        Nenhum {professionalLabel.toLowerCase()} disponível para este serviço
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-                {shouldFilterProfessionalsByService && formData.serviceId && filteredBarbers.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Nenhum profissional habilitado para este serviço. Entre em contato com o estabelecimento.
-                  </p>
-                )}
-              </div>
+              {formData.serviceId && (
+                <div className="space-y-2">
+                  <Label>{professionalLabel}</Label>
+                  {professionals.length === 0 ? (
+                    <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground">
+                      Carregando profissionais...
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.barberId}
+                      onValueChange={(value) => setFormData({ ...formData, barberId: value, appointmentTime: '' })}
+                    >
+                      <SelectTrigger className="bg-input border-border">
+                        <SelectValue placeholder={`Selecione o ${professionalLabel.toLowerCase()}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {professionals.map((professional) => (
+                          <SelectItem key={professional.id} value={professional.id}>
+                            {professional.name}
+                            {professional.specialty && ` (${professional.specialty})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
 
-              <div className="flex gap-2 mt-4">
-                <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
                   Voltar
                 </Button>
                 <Button
                   variant="gold"
+                  className="flex-1"
                   onClick={() => setStep(3)}
                   disabled={!formData.serviceId || !formData.barberId}
-                  className="flex-1"
                 >
                   Continuar
                 </Button>
@@ -559,13 +608,14 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-center">
+              <div className="space-y-2">
+                <Label>Data</Label>
                 <Calendar
                   mode="single"
                   selected={formData.appointmentDate}
                   onSelect={(date) => setFormData({ ...formData, appointmentDate: date, appointmentTime: '' })}
-                  disabled={(date) => isBefore(date, startOfDay(new Date())) || date > addDays(new Date(), 30)}
-                  className="rounded-md border border-border"
+                  disabled={(date) => isBefore(date, startOfDay(new Date())) || isBefore(addDays(new Date(), 30), date)}
+                  className="rounded-md border bg-card"
                   locale={pt}
                 />
               </div>
@@ -573,10 +623,16 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
               {formData.appointmentDate && (
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" />
-                    Horários disponíveis
+                    <Clock className="w-4 h-4" />
+                    Horário disponível
                   </Label>
-                  {timeSlots.length > 0 ? (
+                  {timeSlots.length === 0 ? (
+                    <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground">
+                      Nenhum horário disponível para esta data.
+                      <br />
+                      <span className="text-sm">Tente outra data ou profissional.</span>
+                    </div>
+                  ) : (
                     <div className="grid grid-cols-4 gap-2">
                       {timeSlots.map((time) => (
                         <Button
@@ -584,29 +640,25 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
                           variant={formData.appointmentTime === time ? 'gold' : 'outline'}
                           size="sm"
                           onClick={() => setFormData({ ...formData, appointmentTime: time })}
-                          className="text-sm"
+                          className="text-xs"
                         >
                           {time}
                         </Button>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">
-                      {professionalLabel} não trabalha neste dia ou todos os horários estão ocupados.
-                    </p>
                   )}
                 </div>
               )}
 
-              <div className="flex gap-2 mt-4">
-                <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
                   Voltar
                 </Button>
                 <Button
                   variant="gold"
+                  className="flex-1"
                   onClick={handleSubmit}
                   disabled={!formData.appointmentDate || !formData.appointmentTime || isLoading}
-                  className="flex-1"
                 >
                   {isLoading ? 'Agendando...' : 'Confirmar'}
                 </Button>

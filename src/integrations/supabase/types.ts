@@ -214,6 +214,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          specialty: string | null
           updated_at: string
           working_hours: Json | null
         }
@@ -224,6 +225,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          specialty?: string | null
           updated_at?: string
           working_hours?: Json | null
         }
@@ -234,6 +236,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          specialty?: string | null
           updated_at?: string
           working_hours?: Json | null
         }
@@ -428,6 +431,7 @@ export type Database = {
       services: {
         Row: {
           active: boolean
+          allowed_business_types: string[]
           barbershop_id: string | null
           created_at: string
           duration: number
@@ -438,6 +442,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          allowed_business_types?: string[]
           barbershop_id?: string | null
           created_at?: string
           duration?: number
@@ -448,6 +453,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          allowed_business_types?: string[]
           barbershop_id?: string | null
           created_at?: string
           duration?: number
@@ -747,6 +753,7 @@ export type Database = {
           id: string | null
           name: string | null
           phone: string | null
+          specialty: string | null
           updated_at: string | null
           working_hours: Json | null
         }
@@ -757,6 +764,7 @@ export type Database = {
           id?: string | null
           name?: string | null
           phone?: string | null
+          specialty?: string | null
           updated_at?: string | null
           working_hours?: Json | null
         }
@@ -767,6 +775,7 @@ export type Database = {
           id?: string | null
           name?: string | null
           phone?: string | null
+          specialty?: string | null
           updated_at?: string | null
           working_hours?: Json | null
         }
@@ -803,6 +812,15 @@ export type Database = {
           p_whatsapp_number?: string
         }
         Returns: string
+      }
+      get_professionals_for_service: {
+        Args: { p_barbershop_id: string; p_service_id: string }
+        Returns: {
+          id: string
+          name: string
+          specialty: string
+          working_hours: Json
+        }[]
       }
       get_public_barbers: {
         Args: { p_barbershop_id: string }
@@ -873,6 +891,16 @@ export type Database = {
       }
       get_user_barbershop_id: { Args: { _user_id: string }; Returns: string }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
+      get_valid_services: {
+        Args: { p_barbershop_id: string }
+        Returns: {
+          allowed_business_types: string[]
+          duration: number
+          id: string
+          name: string
+          price: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
