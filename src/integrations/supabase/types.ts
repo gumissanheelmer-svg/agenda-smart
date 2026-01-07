@@ -605,13 +605,13 @@ export type Database = {
           logo_url?: string | null
           name?: string | null
           opening_time?: string | null
-          owner_email?: string | null
+          owner_email?: never
           primary_color?: string | null
           secondary_color?: string | null
           slug?: string | null
           text_color?: string | null
           updated_at?: string | null
-          whatsapp_number?: string | null
+          whatsapp_number?: never
         }
         Update: {
           active?: boolean | null
@@ -624,19 +624,21 @@ export type Database = {
           logo_url?: string | null
           name?: string | null
           opening_time?: string | null
-          owner_email?: string | null
+          owner_email?: never
           primary_color?: string | null
           secondary_color?: string | null
           slug?: string | null
           text_color?: string | null
           updated_at?: string | null
-          whatsapp_number?: string | null
+          whatsapp_number?: never
         }
         Relationships: []
       }
       professional_accounts: {
         Row: {
           approval_status: string | null
+          barber_id: string | null
+          barbershop_id: string | null
           business_id: string | null
           business_name: string | null
           created_at: string | null
@@ -650,26 +652,30 @@ export type Database = {
         }
         Insert: {
           approval_status?: string | null
+          barber_id?: string | null
+          barbershop_id?: string | null
           business_id?: string | null
           business_name?: string | null
           created_at?: string | null
-          email?: string | null
+          email?: never
           id?: string | null
           name?: string | null
-          phone?: string | null
+          phone?: never
           professional_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           approval_status?: string | null
+          barber_id?: string | null
+          barbershop_id?: string | null
           business_id?: string | null
           business_name?: string | null
           created_at?: string | null
-          email?: string | null
+          email?: never
           id?: string | null
           name?: string | null
-          phone?: string | null
+          phone?: never
           professional_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -684,9 +690,30 @@ export type Database = {
           },
           {
             foreignKeyName: "barber_accounts_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_accounts_barber_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_accounts_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_accounts_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
             referencedColumns: ["id"]
           },
           {
@@ -694,6 +721,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_accounts_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
           {
@@ -707,37 +741,54 @@ export type Database = {
       }
       professional_services: {
         Row: {
+          barbershop_id: string | null
           id: string | null
           professional_id: string | null
           service_id: string | null
         }
         Insert: {
+          barbershop_id?: string | null
           id?: string | null
           professional_id?: string | null
           service_id?: string | null
         }
         Update: {
+          barbershop_id?: string | null
           id?: string | null
           professional_id?: string | null
           service_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "barber_services_barber_id_fkey"
+            foreignKeyName: "service_professionals_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_professionals_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_professionals_professional_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "barbers"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "barber_services_barber_id_fkey"
+            foreignKeyName: "service_professionals_professional_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "barber_services_service_id_fkey"
+            foreignKeyName: "service_professionals_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
@@ -763,7 +814,7 @@ export type Database = {
           created_at?: string | null
           id?: string | null
           name?: string | null
-          phone?: string | null
+          phone?: never
           specialty?: string | null
           updated_at?: string | null
           working_hours?: Json | null
@@ -774,7 +825,7 @@ export type Database = {
           created_at?: string | null
           id?: string | null
           name?: string | null
-          phone?: string | null
+          phone?: never
           specialty?: string | null
           updated_at?: string | null
           working_hours?: Json | null
