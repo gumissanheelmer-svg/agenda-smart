@@ -135,7 +135,8 @@ export default function ServicesList() {
       return;
     }
 
-    if (formData.allowedTypes.length === 0) {
+    // Validar tipos apenas para negócios híbridos
+    if (businessType === 'salao_barbearia' && formData.allowedTypes.length === 0) {
       toast({
         title: 'Erro',
         description: 'Selecione pelo menos um tipo de negócio permitido.',
@@ -144,12 +145,17 @@ export default function ServicesList() {
       return;
     }
 
+    // Para negócios não-híbridos, forçar o tipo correto
+    const finalAllowedTypes = businessType === 'salao_barbearia'
+      ? formData.allowedTypes
+      : [businessType];
+
     const serviceData = {
       name: formData.name.trim(),
       price: parseFloat(formData.price),
       duration: parseInt(formData.duration),
       active: formData.active,
-      allowed_business_types: formData.allowedTypes,
+      allowed_business_types: finalAllowedTypes,
     };
 
     let serviceId: string;
@@ -257,12 +263,16 @@ export default function ServicesList() {
       });
     } else {
       setEditingService(null);
+      // Para negócios não-híbridos, auto-definir o tipo correto
+      const defaultAllowedTypes = businessType === 'salao_barbearia'
+        ? ['barbearia', 'salao', 'salao_barbearia']
+        : [businessType];
       setFormData({ 
         name: '', 
         price: '', 
         duration: '30', 
         active: true,
-        allowedTypes: ['barbearia', 'salao', 'salao_barbearia'],
+        allowedTypes: defaultAllowedTypes,
         selectedProfessionals: []
       });
     }
@@ -347,27 +357,29 @@ export default function ServicesList() {
                 </div>
               </div>
 
-              {/* Tipos de negócio permitidos */}
-              <div className="space-y-2">
-                <Label>Tipos de Negócio Permitidos *</Label>
-                <div className="space-y-2 p-3 bg-secondary/30 rounded-lg">
-                  {Object.entries(businessTypeLabels).map(([type, label]) => (
-                    <div key={type} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`type-${type}`}
-                        checked={formData.allowedTypes.includes(type)}
-                        onCheckedChange={() => toggleBusinessType(type)}
-                      />
-                      <label 
-                        htmlFor={`type-${type}`} 
-                        className="text-sm cursor-pointer"
-                      >
-                        {label}
-                      </label>
-                    </div>
-                  ))}
+              {/* Tipos de negócio permitidos - mostrar apenas para híbridos */}
+              {businessType === 'salao_barbearia' && (
+                <div className="space-y-2">
+                  <Label>Tipos de Negócio Permitidos *</Label>
+                  <div className="space-y-2 p-3 bg-secondary/30 rounded-lg">
+                    {Object.entries(businessTypeLabels).map(([type, label]) => (
+                      <div key={type} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`type-${type}`}
+                          checked={formData.allowedTypes.includes(type)}
+                          onCheckedChange={() => toggleBusinessType(type)}
+                        />
+                        <label 
+                          htmlFor={`type-${type}`} 
+                          className="text-sm cursor-pointer"
+                        >
+                          {label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Seleção de profissionais */}
               <div className="space-y-2">
