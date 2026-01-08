@@ -176,6 +176,7 @@ export type Database = {
           active: boolean
           barbershop_id: string | null
           created_at: string
+          has_app_access: boolean | null
           id: string
           name: string
           phone: string | null
@@ -187,6 +188,7 @@ export type Database = {
           active?: boolean
           barbershop_id?: string | null
           created_at?: string
+          has_app_access?: boolean | null
           id?: string
           name: string
           phone?: string | null
@@ -198,6 +200,7 @@ export type Database = {
           active?: boolean
           barbershop_id?: string | null
           created_at?: string
+          has_app_access?: boolean | null
           id?: string
           name?: string
           phone?: string | null
@@ -313,6 +316,132 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      professional_attendance: {
+        Row: {
+          attendance_date: string
+          barber_id: string
+          barbershop_id: string
+          created_at: string | null
+          id: string
+          marked_at: string | null
+          marked_by: string | null
+          status: string
+        }
+        Insert: {
+          attendance_date?: string
+          barber_id: string
+          barbershop_id: string
+          created_at?: string | null
+          id?: string
+          marked_at?: string | null
+          marked_by?: string | null
+          status?: string
+        }
+        Update: {
+          attendance_date?: string
+          barber_id?: string
+          barbershop_id?: string
+          created_at?: string | null
+          id?: string
+          marked_at?: string | null
+          marked_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_attendance_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_schedules: {
+        Row: {
+          barber_id: string
+          barbershop_id: string
+          break_end: string | null
+          break_start: string | null
+          created_at: string | null
+          day_of_week: number
+          end_time: string | null
+          id: string
+          is_working_day: boolean | null
+          start_time: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          barber_id: string
+          barbershop_id: string
+          break_end?: string | null
+          break_start?: string | null
+          created_at?: string | null
+          day_of_week: number
+          end_time?: string | null
+          id?: string
+          is_working_day?: boolean | null
+          start_time?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          barber_id?: string
+          barbershop_id?: string
+          break_end?: string | null
+          break_start?: string | null
+          created_at?: string | null
+          day_of_week?: number
+          end_time?: string | null
+          id?: string
+          is_working_day?: boolean | null
+          start_time?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_schedules_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_time_off: {
+        Row: {
+          barber_id: string
+          barbershop_id: string
+          created_at: string | null
+          id: string
+          off_date: string
+          reason: string | null
+        }
+        Insert: {
+          barber_id: string
+          barbershop_id: string
+          created_at?: string | null
+          id?: string
+          off_date: string
+          reason?: string | null
+        }
+        Update: {
+          barber_id?: string
+          barbershop_id?: string
+          created_at?: string | null
+          id?: string
+          off_date?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_time_off_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -520,6 +649,17 @@ export type Database = {
           p_whatsapp_number?: string
         }
         Returns: string
+      }
+      get_available_professionals: {
+        Args: { p_barbershop_id: string; p_date: string }
+        Returns: {
+          attendance_status: string
+          id: string
+          is_day_off: boolean
+          name: string
+          specialty: string
+          working_hours: Json
+        }[]
       }
       get_professionals_for_service: {
         Args: { p_barbershop_id: string; p_service_id: string }
