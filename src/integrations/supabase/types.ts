@@ -66,24 +66,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "appointments_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointments_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
           {
@@ -144,24 +130,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "barber_accounts_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "barber_accounts_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]
@@ -188,13 +160,6 @@ export type Database = {
             columns: ["barber_id"]
             isOneToOne: false
             referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_services_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
             referencedColumns: ["id"]
           },
           {
@@ -246,13 +211,6 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barbers_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]
@@ -399,24 +357,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "service_professionals_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "service_professionals_professional_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_professionals_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
             referencedColumns: ["id"]
           },
           {
@@ -470,13 +414,6 @@ export type Database = {
             referencedRelation: "barbershops"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "services_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
         ]
       }
       subscriptions: {
@@ -527,13 +464,6 @@ export type Database = {
             referencedRelation: "barbershops"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "subscriptions_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_roles: {
@@ -563,290 +493,11 @@ export type Database = {
             referencedRelation: "barbershops"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_roles_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
     Views: {
-      businesses: {
-        Row: {
-          active: boolean | null
-          approval_status: string | null
-          background_color: string | null
-          business_type: string | null
-          closing_time: string | null
-          created_at: string | null
-          id: string | null
-          logo_url: string | null
-          name: string | null
-          opening_time: string | null
-          owner_email: string | null
-          primary_color: string | null
-          secondary_color: string | null
-          slug: string | null
-          text_color: string | null
-          updated_at: string | null
-          whatsapp_number: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          approval_status?: string | null
-          background_color?: string | null
-          business_type?: string | null
-          closing_time?: string | null
-          created_at?: string | null
-          id?: string | null
-          logo_url?: string | null
-          name?: string | null
-          opening_time?: string | null
-          owner_email?: never
-          primary_color?: string | null
-          secondary_color?: string | null
-          slug?: string | null
-          text_color?: string | null
-          updated_at?: string | null
-          whatsapp_number?: never
-        }
-        Update: {
-          active?: boolean | null
-          approval_status?: string | null
-          background_color?: string | null
-          business_type?: string | null
-          closing_time?: string | null
-          created_at?: string | null
-          id?: string | null
-          logo_url?: string | null
-          name?: string | null
-          opening_time?: string | null
-          owner_email?: never
-          primary_color?: string | null
-          secondary_color?: string | null
-          slug?: string | null
-          text_color?: string | null
-          updated_at?: string | null
-          whatsapp_number?: never
-        }
-        Relationships: []
-      }
-      professional_accounts: {
-        Row: {
-          approval_status: string | null
-          barber_id: string | null
-          barbershop_id: string | null
-          business_id: string | null
-          business_name: string | null
-          created_at: string | null
-          email: string | null
-          id: string | null
-          name: string | null
-          phone: string | null
-          professional_id: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          approval_status?: string | null
-          barber_id?: string | null
-          barbershop_id?: string | null
-          business_id?: string | null
-          business_name?: string | null
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          name?: string | null
-          phone?: never
-          professional_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          approval_status?: string | null
-          barber_id?: string | null
-          barbershop_id?: string | null
-          business_id?: string | null
-          business_name?: string | null
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          name?: string | null
-          phone?: never
-          professional_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "barber_accounts_barber_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barber_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barbershop_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_accounts_barbershop_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      professional_services: {
-        Row: {
-          barbershop_id: string | null
-          id: string | null
-          professional_id: string | null
-          service_id: string | null
-        }
-        Insert: {
-          barbershop_id?: string | null
-          id?: string | null
-          professional_id?: string | null
-          service_id?: string | null
-        }
-        Update: {
-          barbershop_id?: string | null
-          id?: string | null
-          professional_id?: string | null
-          service_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_professionals_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_professionals_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_professionals_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_professionals_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_professionals_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      professionals: {
-        Row: {
-          active: boolean | null
-          business_id: string | null
-          created_at: string | null
-          id: string | null
-          name: string | null
-          phone: string | null
-          specialty: string | null
-          updated_at: string | null
-          working_hours: Json | null
-        }
-        Insert: {
-          active?: boolean | null
-          business_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          phone?: never
-          specialty?: string | null
-          updated_at?: string | null
-          working_hours?: Json | null
-        }
-        Update: {
-          active?: boolean | null
-          business_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          phone?: never
-          specialty?: string | null
-          updated_at?: string | null
-          working_hours?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "barbers_barbershop_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barbers_barbershop_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       create_barbershop: {
