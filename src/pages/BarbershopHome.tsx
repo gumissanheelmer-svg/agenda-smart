@@ -60,7 +60,12 @@ export default function BarbershopHome() {
       </Helmet>
       
       {showBooking ? (
-        <BookingForm onBack={() => setShowBooking(false)} barbershopId={barbershop.id} />
+        <BookingForm 
+          onBack={() => setShowBooking(false)} 
+          barbershopId={barbershop.id}
+          backgroundImageUrl={barbershop.background_image_url}
+          backgroundOverlayLevel={barbershop.background_overlay_level as 'low' | 'medium' | 'high' | undefined}
+        />
       ) : (
         <LandingPage 
           onBookNow={() => setShowBooking(true)} 

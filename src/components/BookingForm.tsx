@@ -17,6 +17,8 @@ import { useBusinessType } from '@/hooks/useBusinessType';
 interface BookingFormProps {
   onBack: () => void;
   barbershopId?: string;
+  backgroundImageUrl?: string | null;
+  backgroundOverlayLevel?: 'low' | 'medium' | 'high';
 }
 
 interface ServiceData {
@@ -71,7 +73,7 @@ const validateMozambicanPhone = (phone: string): { isValid: boolean; formatted: 
   return { isValid: true, formatted };
 };
 
-export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
+export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgroundOverlayLevel = 'medium' }: BookingFormProps) {
   const { toast } = useToast();
   const { barbershop } = useBarbershop();
   const { professionalLabel, isBarbershop } = useBusinessType();
@@ -389,9 +391,25 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
     const professionalName = professionals.find(p => p.id === createdAppointment.barber_id)?.name;
     const serviceName = services.find(s => s.id === createdAppointment.service_id)?.name;
 
+    const overlayOpacity = {
+      low: 'bg-black/30',
+      medium: 'bg-black/50',
+      high: 'bg-black/70',
+    }[backgroundOverlayLevel];
+
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-border/50 bg-card/80 backdrop-blur animate-scale-in">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+        {/* Background Image */}
+        {backgroundImageUrl && (
+          <>
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
+              style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+            />
+            <div className={`absolute inset-0 ${overlayOpacity}`} />
+          </>
+        )}
+        <Card className="relative z-10 w-full max-w-md border-border/50 bg-card/90 backdrop-blur-md animate-scale-in shadow-2xl">
           <CardContent className="pt-8 text-center">
             <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <Check className="w-10 h-10 text-primary" />
@@ -449,9 +467,25 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
   const timeSlots = generateTimeSlots();
   const ServiceIcon = isBarbershop ? Scissors : Sparkles;
 
+  const overlayOpacity = {
+    low: 'bg-black/30',
+    medium: 'bg-black/50',
+    high: 'bg-black/70',
+  }[backgroundOverlayLevel];
+
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-lg mx-auto">
+    <div className="min-h-screen bg-background py-8 px-4 relative">
+      {/* Background Image */}
+      {backgroundImageUrl && (
+        <>
+          <div 
+            className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+          />
+          <div className={`fixed inset-0 ${overlayOpacity}`} />
+        </>
+      )}
+      <div className="max-w-lg mx-auto relative z-10">
         <Button variant="ghost" onClick={onBack} className="mb-6">
           ← Voltar
         </Button>
@@ -470,15 +504,15 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
 
         {/* Error message */}
         {bookingError && (
-          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-destructive">
+          <div className="mb-4 p-4 bg-destructive/20 border border-destructive/30 rounded-lg flex items-center gap-2 text-destructive backdrop-blur-md shadow-lg">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm">{bookingError}</span>
+            <span className="text-sm font-medium">{bookingError}</span>
           </div>
         )}
 
         {/* Step 1: Client Info */}
         {step === 1 && (
-          <Card className="border-border/50 bg-card/80 backdrop-blur animate-fade-in">
+          <Card className="border-border/50 bg-card/90 backdrop-blur-md shadow-xl animate-fade-in">
             <CardHeader>
               <CardTitle className="text-xl font-display flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" />
@@ -556,7 +590,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
 
         {/* Step 2: Service & Professional */}
         {step === 2 && (
-          <Card className="border-border/50 bg-card/80 backdrop-blur animate-fade-in">
+          <Card className="border-border/50 bg-card/90 backdrop-blur-md shadow-xl animate-fade-in">
             <CardHeader>
               <CardTitle className="text-xl font-display flex items-center gap-2">
                 <ServiceIcon className="w-5 h-5 text-primary" />
@@ -630,7 +664,7 @@ export function BookingForm({ onBack, barbershopId }: BookingFormProps) {
 
         {/* Step 3: Date & Time */}
         {step === 3 && (
-          <Card className="border-border/50 bg-card/80 backdrop-blur animate-fade-in">
+          <Card className="border-border/50 bg-card/90 backdrop-blur-md shadow-xl animate-fade-in">
             <CardHeader>
               <CardTitle className="text-xl font-display flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-primary" />
