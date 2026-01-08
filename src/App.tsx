@@ -21,6 +21,8 @@ import ClientsList from "./pages/admin/ClientsList";
 import ExpensesList from "./pages/admin/ExpensesList";
 import SettingsPage from "./pages/admin/SettingsPage";
 import BarberAccountsPage from "./pages/admin/BarberAccountsPage";
+import ProfessionalSchedulesPage from "./pages/admin/ProfessionalSchedulesPage";
+import AttendanceManagementPage from "./pages/admin/AttendanceManagementPage";
 import BarberRegister from "./pages/BarberRegister";
 import BarberDashboard from "./pages/BarberDashboard";
 import BarbershopRegister from "./pages/BarbershopRegister";
@@ -59,6 +61,8 @@ const App = () => (
                     <Route index element={<DashboardOverview />} />
                     <Route path="appointments" element={<AppointmentsList />} />
                     <Route path="barbers" element={<BarbersList />} />
+                    <Route path="schedules" element={<ProfessionalSchedulesPage />} />
+                    <Route path="attendance" element={<AttendanceManagementPage />} />
                     <Route path="services" element={<ServicesList />} />
                     <Route path="clients" element={<ClientsList />} />
                     <Route path="expenses" element={<ExpensesList />} />

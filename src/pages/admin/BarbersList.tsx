@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { UserCheck, Plus, Edit2, Trash2, Scissors, Sparkles, Briefcase } from 'lucide-react';
+import { UserCheck, Plus, Edit2, Trash2, Scissors, Sparkles, Briefcase, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminBarbershop } from '@/hooks/useAdminBarbershop';
@@ -17,6 +17,7 @@ interface Barber {
   phone: string | null;
   specialty: string | null;
   active: boolean;
+  has_app_access: boolean;
 }
 
 export default function BarbersList() {
@@ -27,7 +28,7 @@ export default function BarbersList() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBarber, setEditingBarber] = useState<Barber | null>(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', specialty: '', active: true });
+  const [formData, setFormData] = useState({ name: '', phone: '', specialty: '', active: true, has_app_access: true });
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
   const businessType = barbershop?.business_type || 'barbearia';
@@ -77,7 +78,7 @@ export default function BarbersList() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('barbers')
-      .select('id, name, phone, specialty, active')
+      .select('id, name, phone, specialty, active, has_app_access')
       .eq('barbershop_id', barbershopId)
       .order('name');
 
@@ -113,6 +114,7 @@ export default function BarbersList() {
       phone: formData.phone.trim() || null,
       specialty: formData.specialty.trim(),
       active: formData.active,
+      has_app_access: formData.has_app_access,
     };
 
     if (editingBarber) {
@@ -173,11 +175,12 @@ export default function BarbersList() {
         name: barber.name, 
         phone: barber.phone || '', 
         specialty: barber.specialty || '',
-        active: barber.active 
+        active: barber.active,
+        has_app_access: barber.has_app_access ?? true
       });
     } else {
       setEditingBarber(null);
-      setFormData({ name: '', phone: '', specialty: '', active: true });
+      setFormData({ name: '', phone: '', specialty: '', active: true, has_app_access: true });
     }
     setIsDialogOpen(true);
   };
@@ -250,6 +253,23 @@ export default function BarbersList() {
                   onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
                 />
               </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="has_app_access" className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4" />
+                    Acesso ao App
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Desative para profissionais sem smartphone
+                  </p>
+                </div>
+                <Switch
+                  id="has_app_access"
+                  checked={formData.has_app_access}
+                  onCheckedChange={(checked) => setFormData({ ...formData, has_app_access: checked })}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
@@ -293,6 +313,15 @@ export default function BarbersList() {
                         {barber.specialty && barber.phone && <span>•</span>}
                         {barber.phone && <span>{barber.phone}</span>}
                         {!barber.specialty && !barber.phone && <span>Sem informações adicionais</span>}
+                        {!barber.has_app_access && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 text-yellow-500">
+                              <Smartphone className="w-3 h-3" />
+                              Sem app
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -14,7 +14,8 @@ import {
   UserCheck,
   Menu,
   Wallet,
-  Sparkles
+  Sparkles,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
@@ -31,6 +32,8 @@ const getNavItems = (professionalsLabel: string, isBarbershop: boolean): NavItem
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/admin/dashboard/appointments', icon: Calendar, label: 'Agendamentos' },
   { to: '/admin/dashboard/barbers', icon: isBarbershop ? UserCheck : Sparkles, label: professionalsLabel },
+  { to: '/admin/dashboard/schedules', icon: Clock, label: 'Horários' },
+  { to: '/admin/dashboard/attendance', icon: UserCheck, label: 'Presença' },
   { to: '/admin/dashboard/accounts', icon: Users, label: 'Contas' },
   { to: '/admin/dashboard/services', icon: Scissors, label: 'Serviços' },
   { to: '/admin/dashboard/clients', icon: Users, label: 'Clientes' },

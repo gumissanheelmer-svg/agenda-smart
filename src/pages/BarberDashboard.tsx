@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,10 @@ import {
   Clock,
   User,
   Phone,
-  MessageCircle
+  MessageCircle,
+  UserCheck,
+  UserX,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
@@ -40,6 +43,9 @@ export default function BarberDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent' | 'pending'>('pending');
+  const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
+  const [hasAppAccess, setHasAppAccess] = useState(true);
 
   useEffect(() => {
     if (!isLoading && (!user || !isApprovedBarber)) {
@@ -50,6 +56,8 @@ export default function BarberDashboard() {
   useEffect(() => {
     if (barberAccount?.barber_id) {
       fetchAppointments();
+      fetchAttendanceStatus();
+      checkAppAccess();
     }
   }, [barberAccount, dateFilter]);
 
@@ -89,6 +97,62 @@ export default function BarberDashboard() {
       setAppointments(data as Appointment[]);
     }
     setIsLoadingData(false);
+  };
+
+  const fetchAttendanceStatus = async () => {
+    if (!barberAccount?.barber_id || !barberAccount?.barbershop_id) return;
+    
+    const today = format(new Date(), 'yyyy-MM-dd');
+    
+    const { data } = await supabase
+      .from('professional_attendance')
+      .select('status')
+      .eq('barber_id', barberAccount.barber_id)
+      .eq('attendance_date', today)
+      .maybeSingle();
+    
+    if (data?.status) {
+      setAttendanceStatus(data.status as 'present' | 'absent' | 'pending');
+    } else {
+      setAttendanceStatus('pending');
+    }
+  };
+
+  const checkAppAccess = async () => {
+    if (!barberAccount?.barber_id) return;
+    
+    const { data } = await supabase
+      .from('barbers')
+      .select('has_app_access')
+      .eq('id', barberAccount.barber_id)
+      .maybeSingle();
+    
+    setHasAppAccess(data?.has_app_access ?? true);
+  };
+
+  const markAttendance = async (status: 'present' | 'absent') => {
+    if (!barberAccount?.barber_id || !barberAccount?.barbershop_id || !hasAppAccess) return;
+    
+    setIsMarkingAttendance(true);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    
+    const { error } = await supabase
+      .from('professional_attendance')
+      .upsert({
+        barber_id: barberAccount.barber_id,
+        barbershop_id: barberAccount.barbershop_id,
+        attendance_date: today,
+        status,
+        marked_by: user?.id,
+        marked_at: new Date().toISOString(),
+      }, { 
+        onConflict: 'barber_id,attendance_date' 
+      });
+
+    if (!error) {
+      setAttendanceStatus(status);
+    }
+    setIsMarkingAttendance(false);
   };
 
   const getFilterLabel = () => {
@@ -175,6 +239,49 @@ export default function BarberDashboard() {
 
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
+          {/* Attendance Card */}
+          {hasAppAccess && (
+            <Card className={cn(
+              "mb-6 border",
+              attendanceStatus === 'present' ? 'border-green-500/30 bg-green-500/5' :
+              attendanceStatus === 'absent' ? 'border-red-500/30 bg-red-500/5' :
+              'border-yellow-500/30 bg-yellow-500/5'
+            )}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-display flex items-center gap-2">
+                  {attendanceStatus === 'present' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  {attendanceStatus === 'absent' && <UserX className="w-5 h-5 text-red-500" />}
+                  {attendanceStatus === 'pending' && <Clock className="w-5 h-5 text-yellow-500" />}
+                  Meu Dia de Trabalho
+                </CardTitle>
+                <CardDescription>
+                  {attendanceStatus === 'present' && 'Você está marcado como presente hoje.'}
+                  {attendanceStatus === 'absent' && 'Você está marcado como ausente hoje.'}
+                  {attendanceStatus === 'pending' && 'Marque sua presença para começar o dia.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex gap-3">
+                <Button
+                  variant={attendanceStatus === 'present' ? 'default' : 'outline'}
+                  className={attendanceStatus === 'present' ? 'bg-green-500 hover:bg-green-600' : ''}
+                  onClick={() => markAttendance('present')}
+                  disabled={isMarkingAttendance}
+                >
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Presente
+                </Button>
+                <Button
+                  variant={attendanceStatus === 'absent' ? 'destructive' : 'outline'}
+                  onClick={() => markAttendance('absent')}
+                  disabled={isMarkingAttendance}
+                >
+                  <UserX className="w-4 h-4 mr-2" />
+                  Ausente
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div>
