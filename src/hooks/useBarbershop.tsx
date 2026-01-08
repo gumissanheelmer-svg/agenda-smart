@@ -15,6 +15,8 @@ export interface Barbershop {
   closing_time: string | null;
   active: boolean;
   business_type: 'barbearia' | 'salao' | 'salao_barbearia';
+  background_image_url: string | null;
+  background_overlay_level: 'low' | 'medium' | 'high';
 }
 
 interface BarbershopContextType {
@@ -59,6 +61,8 @@ export function BarbershopProvider({ children }: { children: ReactNode }) {
         ...barbershopData,
         active: true, // We only get active barbershops
         business_type: barbershopData.business_type || 'barbearia',
+        background_image_url: barbershopData.background_image_url || null,
+        background_overlay_level: barbershopData.background_overlay_level || 'medium',
       } as Barbershop);
       setIsLoading(false);
       return true;

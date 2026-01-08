@@ -66,6 +66,8 @@ export default function BarbershopHome() {
           onBookNow={() => setShowBooking(true)} 
           barbershopName={barbershop.name}
           logoUrl={barbershop.logo_url}
+          backgroundImageUrl={barbershop.background_image_url}
+          backgroundOverlayLevel={barbershop.background_overlay_level}
         />
       )}
     </>

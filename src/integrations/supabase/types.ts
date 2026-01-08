@@ -220,6 +220,8 @@ export type Database = {
           active: boolean
           approval_status: string
           background_color: string
+          background_image_url: string | null
+          background_overlay_level: string | null
           business_type: string
           closing_time: string | null
           created_at: string
@@ -239,6 +241,8 @@ export type Database = {
           active?: boolean
           approval_status?: string
           background_color?: string
+          background_image_url?: string | null
+          background_overlay_level?: string | null
           business_type?: string
           closing_time?: string | null
           created_at?: string
@@ -258,6 +262,8 @@ export type Database = {
           active?: boolean
           approval_status?: string
           background_color?: string
+          background_image_url?: string | null
+          background_overlay_level?: string | null
           business_type?: string
           closing_time?: string | null
           created_at?: string
@@ -536,6 +542,8 @@ export type Database = {
         Args: { p_slug: string }
         Returns: {
           background_color: string
+          background_image_url: string
+          background_overlay_level: string
           business_type: string
           closing_time: string
           id: string
@@ -553,6 +561,8 @@ export type Database = {
         Args: { p_slug: string }
         Returns: {
           background_color: string
+          background_image_url: string
+          background_overlay_level: string
           business_type: string
           closing_time: string
           id: string

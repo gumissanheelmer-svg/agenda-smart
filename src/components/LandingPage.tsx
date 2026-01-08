@@ -7,18 +7,45 @@ interface LandingPageProps {
   onBookNow: () => void;
   barbershopName?: string;
   logoUrl?: string | null;
+  backgroundImageUrl?: string | null;
+  backgroundOverlayLevel?: 'low' | 'medium' | 'high';
 }
 
-export function LandingPage({ onBookNow, barbershopName, logoUrl }: LandingPageProps) {
+export function LandingPage({ 
+  onBookNow, 
+  barbershopName, 
+  logoUrl,
+  backgroundImageUrl,
+  backgroundOverlayLevel = 'medium'
+}: LandingPageProps) {
   const displayName = barbershopName || 'Barbearia Elite';
+  
+  const overlayOpacity = {
+    low: 'bg-black/30',
+    medium: 'bg-black/50',
+    high: 'bg-black/70',
+  }[backgroundOverlayLevel];
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* Background decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-background overflow-hidden relative">
+      {/* Background Image */}
+      {backgroundImageUrl && (
+        <>
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+          />
+          <div className={`absolute inset-0 ${overlayOpacity}`} />
+        </>
+      )}
+      
+      {/* Background decorations - only show if no background image */}
+      {!backgroundImageUrl && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
+        </div>
+      )}
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">

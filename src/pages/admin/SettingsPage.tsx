@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings as SettingsIcon, Save, MessageCircle, Palette } from 'lucide-react';
+import { Settings as SettingsIcon, Save, MessageCircle, Palette, Image, Upload, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface BarbershopSettings {
   id: string;
@@ -21,6 +22,8 @@ interface BarbershopSettings {
   opening_time: string | null;
   closing_time: string | null;
   business_type: string;
+  background_image_url: string | null;
+  background_overlay_level: 'low' | 'medium' | 'high';
 }
 
 const getBusinessLabels = (type: string) => {
@@ -52,6 +55,9 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<BarbershopSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -106,6 +112,8 @@ export default function SettingsPage() {
         text_color: settings.text_color,
         opening_time: settings.opening_time,
         closing_time: settings.closing_time,
+        background_image_url: settings.background_image_url,
+        background_overlay_level: settings.background_overlay_level,
       })
       .eq('id', settings.id);
 
@@ -122,6 +130,98 @@ export default function SettingsPage() {
       });
     }
     setIsSaving(false);
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !settings) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Tipo inválido',
+        description: 'Apenas JPG, PNG e WEBP são permitidos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: 'O tamanho máximo permitido é 2MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to Supabase Storage
+    setIsUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${settings.id}/background.${fileExt}`;
+
+    // Delete old file if exists
+    if (settings.background_image_url) {
+      const oldPath = settings.background_image_url.split('/backgrounds/')[1];
+      if (oldPath) {
+        await supabase.storage.from('backgrounds').remove([oldPath]);
+      }
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from('backgrounds')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) {
+      toast({
+        title: 'Erro no upload',
+        description: 'Não foi possível enviar a imagem.',
+        variant: 'destructive',
+      });
+      setIsUploading(false);
+      setPreviewImage(null);
+      return;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('backgrounds')
+      .getPublicUrl(fileName);
+
+    setSettings({ ...settings, background_image_url: publicUrl });
+    setPreviewImage(null);
+    setIsUploading(false);
+
+    toast({
+      title: 'Imagem carregada',
+      description: 'Clique em Salvar para aplicar as alterações.',
+    });
+  };
+
+  const handleRemoveImage = async () => {
+    if (!settings?.background_image_url) return;
+
+    const path = settings.background_image_url.split('/backgrounds/')[1];
+    if (path) {
+      await supabase.storage.from('backgrounds').remove([path]);
+    }
+
+    setSettings({ ...settings, background_image_url: null });
+    setPreviewImage(null);
+
+    toast({
+      title: 'Imagem removida',
+      description: 'Clique em Salvar para aplicar as alterações.',
+    });
   };
 
   if (isLoading) {
@@ -237,6 +337,108 @@ export default function SettingsPage() {
                   className="bg-input border-border"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Background Image - Configurações do Site */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader>
+            <CardTitle className="font-display flex items-center gap-2">
+              <Image className="w-5 h-5 text-primary" />
+              Configurações do Site
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Image Upload Section */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Imagem de Fundo do Site</Label>
+              
+              {/* Preview */}
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border bg-muted">
+                {(previewImage || settings.background_image_url) ? (
+                  <>
+                    <img 
+                      src={previewImage || settings.background_image_url || ''} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Overlay preview */}
+                    <div 
+                      className={`absolute inset-0 bg-black ${
+                        settings.background_overlay_level === 'low' ? 'opacity-30' :
+                        settings.background_overlay_level === 'high' ? 'opacity-70' : 'opacity-50'
+                      }`}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-white font-display text-xl font-bold">{settings.name}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <Image className="w-12 h-12 mb-2 opacity-50" />
+                    <p className="text-sm">Nenhuma imagem de fundo</p>
+                    <p className="text-xs">Será usado o fundo padrão</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Upload Controls */}
+              <div className="flex flex-wrap gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isUploading ? 'Enviando...' : 'Carregar Imagem'}
+                </Button>
+                {settings.background_image_url && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleRemoveImage}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remover
+                  </Button>
+                )}
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Formatos: JPG, PNG, WEBP. Tamanho máximo: 2MB.
+              </p>
+            </div>
+
+            {/* Overlay Level */}
+            <div className="space-y-3">
+              <Label htmlFor="overlay_level">Intensidade do Overlay</Label>
+              <Select
+                value={settings.background_overlay_level}
+                onValueChange={(value: 'low' | 'medium' | 'high') => 
+                  setSettings({ ...settings, background_overlay_level: value })
+                }
+              >
+                <SelectTrigger className="w-48 bg-input border-border">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixo (30%)</SelectItem>
+                  <SelectItem value="medium">Médio (50%)</SelectItem>
+                  <SelectItem value="high">Alto (70%)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                O overlay escuro garante a legibilidade do texto sobre a imagem.
+              </p>
             </div>
           </CardContent>
         </Card>
