@@ -97,7 +97,7 @@ export default function ManagersPage() {
         variant: 'destructive',
       });
     } else {
-      setManagers(data as Manager[]);
+      setManagers((data || []) as unknown as Manager[]);
     }
     setIsLoading(false);
   };
@@ -131,13 +131,15 @@ export default function ManagersPage() {
       // Check if email already exists as manager
       const { data: existingManager } = await supabase
         .from('managers')
-        .select('id, status, active')
+        .select('id, active')
         .eq('email', formData.email.trim().toLowerCase())
         .eq('barbershop_id', barbershopId)
         .maybeSingle();
 
-      if (existingManager) {
-        if (existingManager.status === 'pending') {
+      const existingManagerData = existingManager as unknown as { id: string; status?: string; active: boolean } | null;
+
+      if (existingManagerData) {
+        if (existingManagerData.status === 'pending') {
           toast({
             title: 'Gerente já cadastrado',
             description: 'Este gerente já foi criado e está aguardando ativação.',
@@ -146,7 +148,7 @@ export default function ManagersPage() {
           setIsCreating(false);
           return;
         }
-        if (existingManager.status === 'active' && existingManager.active) {
+        if (existingManagerData.status === 'active' && existingManagerData.active) {
           toast({
             title: 'Erro',
             description: 'Já existe um gerente ativo com este email.',
@@ -186,9 +188,8 @@ export default function ManagersPage() {
           email: formData.email.trim().toLowerCase(),
           phone: formData.phone.trim() || null,
           created_by: user.id,
-          status: 'pending',
           active: true,
-        });
+        } as any);
 
       if (managerError) {
         throw new Error(managerError.message);
@@ -231,7 +232,7 @@ export default function ManagersPage() {
     try {
       const { error } = await supabase
         .from('managers')
-        .update({ status: 'active' })
+        .update({ active: true } as any)
         .eq('id', manager.id);
 
       if (error) throw error;
@@ -256,7 +257,7 @@ export default function ManagersPage() {
     try {
       const { error } = await supabase
         .from('managers')
-        .update({ status: 'blocked' })
+        .update({ active: false } as any)
         .eq('id', manager.id);
 
       if (error) throw error;

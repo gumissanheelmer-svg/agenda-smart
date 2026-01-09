@@ -10,11 +10,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Lock, Mail, Clock, ShieldX } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 
-type LoginState = 'form' | 'pending' | 'unauthorized';
+type LoginState = 'form' | 'pending' | 'manager_pending' | 'unauthorized';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { signIn, user, isSuperAdmin, isAdmin, isManager, isBarber, isApprovedBarber, barbershopInfo, isLoading } = useAuth();
+  const { signIn, user, isSuperAdmin, isAdmin, isManager, isActiveManager, isBarber, isApprovedBarber, barbershopInfo, isLoading } = useAuth();
   const { toast } = useToast();
   
   const [email, setEmail] = useState('');
@@ -48,8 +48,13 @@ export default function Login() {
         }
       }
       
-      // Manager with approved barbershop
+      // Manager with approved barbershop - check if manager is active
       if (isManager && barbershopInfo) {
+        if (!isActiveManager) {
+          // Manager exists but is not active (pending or blocked)
+          setLoginState('manager_pending');
+          return;
+        }
         if (barbershopInfo.approval_status === 'approved') {
           navigate('/admin/dashboard');
           return;
@@ -82,7 +87,7 @@ export default function Login() {
       // User exists but is neither admin nor barber
       setLoginState('unauthorized');
     }
-  }, [user, isSuperAdmin, isAdmin, isManager, isBarber, isApprovedBarber, barbershopInfo, isLoading, isCheckingRoles, navigate]);
+  }, [user, isSuperAdmin, isAdmin, isManager, isActiveManager, isBarber, isApprovedBarber, barbershopInfo, isLoading, isCheckingRoles, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,7 +178,48 @@ export default function Login() {
                 </h2>
                 
                 <p className="text-muted-foreground mb-6">
-                  A sua conta está a aguardar aprovação do administrador.
+                  Sua conta foi criada com sucesso e está aguardando aprovação do administrador.
+                </p>
+
+                <Button variant="gold" onClick={() => navigate('/')}>
+                  Voltar ao Site
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Pending manager state
+  if (loginState === 'manager_pending') {
+    return (
+      <>
+        <Helmet>
+          <title>Conta Pendente - Barbearia Elite</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+          <div className="fixed inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
+          </div>
+
+          <div className="relative z-10 w-full max-w-md">
+            <Card className="border-border/50 bg-card/80 backdrop-blur text-center">
+              <CardContent className="pt-8 pb-8">
+                <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-6">
+                  <Clock className="w-10 h-10 text-amber-500" />
+                </div>
+                
+                <h2 className="text-2xl font-display text-foreground mb-4">
+                  Aguardando Ativação
+                </h2>
+                
+                <p className="text-muted-foreground mb-6">
+                  Sua conta de gerente foi criada com sucesso e está aguardando ativação pelo administrador do estabelecimento.
                 </p>
 
                 <Button variant="gold" onClick={() => navigate('/')}>

@@ -100,7 +100,7 @@ const NavContent = ({ navItems, onItemClick, onSignOut }: NavContentProps) => (
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user, isAdmin, isManager, isLoading, signOut } = useAuth();
+  const { user, isAdmin, isActiveManager, isLoading, signOut } = useAuth();
   const { barbershop } = useAdminBarbershop();
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -122,10 +122,10 @@ export default function AdminDashboard() {
   }, [isLoading]);
 
   useEffect(() => {
-    if (hasCheckedAuth && (!user || (!isAdmin && !isManager))) {
+    if (hasCheckedAuth && (!user || (!isAdmin && !isActiveManager))) {
       navigate('/login');
     }
-  }, [hasCheckedAuth, user, isAdmin, isManager, navigate]);
+  }, [hasCheckedAuth, user, isAdmin, isActiveManager, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!user || (!isAdmin && !isManager)) {
+  if (!user || (!isAdmin && !isActiveManager)) {
     return null;
   }
 

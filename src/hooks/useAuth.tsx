@@ -10,6 +10,14 @@ interface BarberAccountInfo {
   barbershop_id: string | null;
 }
 
+interface ManagerInfo {
+  id: string;
+  name: string;
+  barbershop_id: string;
+  status: 'pending' | 'active' | 'blocked';
+  active: boolean;
+}
+
 interface BarbershopInfo {
   id: string;
   name: string;
@@ -22,6 +30,8 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   isAdmin: boolean;
   isManager: boolean;
+  isActiveManager: boolean;
+  managerInfo: ManagerInfo | null;
   isBarber: boolean;
   isApprovedBarber: boolean;
   barberAccount: BarberAccountInfo | null;
@@ -42,6 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isManager, setIsManager] = useState(false);
+  const [isActiveManager, setIsActiveManager] = useState(false);
+  const [managerInfo, setManagerInfo] = useState<ManagerInfo | null>(null);
   const [isBarber, setIsBarber] = useState(false);
   const [isApprovedBarber, setIsApprovedBarber] = useState(false);
   const [barberAccount, setBarberAccount] = useState<BarberAccountInfo | null>(null);
@@ -81,6 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsSuperAdmin(false);
     setIsAdmin(false);
     setIsManager(false);
+    setIsActiveManager(false);
+    setManagerInfo(null);
     setIsBarber(false);
     setIsApprovedBarber(false);
     setBarberAccount(null);
@@ -111,6 +125,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Check for manager role and get barbershop_id
       const managerRole = rolesData?.find(r => r.role === 'manager');
       setIsManager(!!managerRole);
+      
+      // If manager role exists, check if manager is active
+      if (managerRole) {
+        const { data: managerData } = await supabase
+          .from('managers')
+          .select('id, name, barbershop_id, active')
+          .eq('user_id', userId)
+          .eq('active', true)
+          .maybeSingle();
+          
+        const mgr = managerData as unknown as ManagerInfo | null;
+        if (mgr) {
+          setManagerInfo(mgr);
+          setIsActiveManager(mgr.active);
+          if (!barbershopId) {
+            setBarbershopId(mgr.barbershop_id);
+          }
+        } else {
+          setManagerInfo(null);
+          setIsActiveManager(false);
+        }
+      }
       
       // Use admin or manager barbershop_id
       const roleWithShop = adminRole || managerRole;
@@ -220,6 +256,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSuperAdmin,
       isAdmin,
       isManager,
+      isActiveManager,
+      managerInfo,
       isBarber, 
       isApprovedBarber, 
       barberAccount,
