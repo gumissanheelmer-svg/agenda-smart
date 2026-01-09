@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Lock, Mail, Clock, ShieldX } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Clock, ShieldX, Building2, UserPlus, LogOut } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 
 type LoginState = 'form' | 'pending' | 'manager_pending' | 'unauthorized';
@@ -235,6 +235,16 @@ export default function Login() {
 
   // Unauthorized state
   if (loginState === 'unauthorized') {
+    const handleLogout = async () => {
+      const { signOut } = await import('@/hooks/useAuth').then(m => ({ signOut: m.useAuth }));
+      // Use the signOut from context
+      await import('@/integrations/supabase/client').then(async ({ supabase }) => {
+        await supabase.auth.signOut();
+        setLoginState('form');
+        navigate('/login');
+      });
+    };
+
     return (
       <>
         <Helmet>
@@ -260,12 +270,54 @@ export default function Login() {
                 </h2>
                 
                 <p className="text-muted-foreground mb-6">
-                  Esta conta não tem permissão para acessar o sistema.
+                  Esta conta não está vinculada a nenhum estabelecimento ou perfil profissional.
                 </p>
 
-                <Button variant="gold" onClick={() => navigate('/')}>
-                  Voltar ao Site
-                </Button>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    O que você deseja fazer?
+                  </p>
+                  
+                  <div className="flex flex-col gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start gap-3"
+                      onClick={() => navigate('/register')}
+                    >
+                      <Building2 className="w-4 h-4" />
+                      Cadastrar meu estabelecimento
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start gap-3"
+                      onClick={() => navigate('/barber/register')}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Me cadastrar como profissional
+                    </Button>
+                  </div>
+
+                  <div className="pt-4 border-t border-border/50 flex flex-col gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="gap-2"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sair e usar outra conta
+                    </Button>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => navigate('/')}
+                    >
+                      Voltar ao Site
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
