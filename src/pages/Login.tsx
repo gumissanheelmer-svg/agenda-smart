@@ -307,6 +307,15 @@ export default function Login() {
                 </Button>
               </form>
 
+              <div className="mt-4 text-center">
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Esqueceu sua senha?
+                </Link>
+              </div>
+
               <div className="mt-6 pt-4 border-t border-border/50 text-center space-y-3">
                 <Link 
                   to="/barber/register" 

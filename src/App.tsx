@@ -27,6 +27,8 @@ import AttendanceManagementPage from "./pages/admin/AttendanceManagementPage";
 import BarberRegister from "./pages/BarberRegister";
 import BarberDashboard from "./pages/BarberDashboard";
 import BarbershopRegister from "./pages/BarbershopRegister";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +54,8 @@ const App = () => (
                   <Route path="/barber/login" element={<Login />} />
                   <Route path="/barber/register" element={<BarberRegister />} />
                   <Route path="/register" element={<BarbershopRegister />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
                   
                   {/* Super Admin routes */}
