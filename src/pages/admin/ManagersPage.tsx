@@ -135,122 +135,55 @@ export default function ManagersPage() {
     setIsCreating(true);
 
     try {
-      // Check if email already exists as manager
-      const { data: existingManager } = await supabase
-        .from('managers')
-        .select('id, active, status')
-        .eq('email', formData.email.trim().toLowerCase())
-        .eq('barbershop_id', barbershopId)
-        .maybeSingle();
+      // Get the current session token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
 
-      const existingManagerData = existingManager as unknown as { id: string; status?: string; active: boolean } | null;
+      if (!token) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
 
-      if (existingManagerData) {
-        if (existingManagerData.status === 'pending' || (!existingManagerData.active && existingManagerData.status !== 'blocked')) {
-          toast({
-            title: 'Gerente já cadastrado',
-            description: 'Este gerente já foi criado e está aguardando ativação.',
-            variant: 'destructive',
-          });
-          setIsCreating(false);
-          return;
+      // Call the Edge Function instead of direct Supabase calls
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-manager`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            password: formData.password,
+            phone: formData.phone.trim() || null,
+            barbershopId: barbershopId,
+          }),
         }
-        if (existingManagerData.status === 'active' && existingManagerData.active) {
-          toast({
-            title: 'Erro',
-            description: 'Já existe um gerente ativo com este email.',
-            variant: 'destructive',
-          });
-          setIsCreating(false);
-          return;
-        }
-      }
+      );
 
-      // Store admin credentials to re-authenticate after signUp
-      const adminId = user.id;
-      const adminBarbershopId = barbershopId;
+      const result = await response.json();
 
-      // 1. Create user account via signUp (this will change the session)
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email.trim(),
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/login`,
-        },
-      });
-
-      if (signUpError) {
-        throw new Error(signUpError.message);
-      }
-
-      if (!signUpData.user) {
-        throw new Error('Não foi possível criar a conta do usuário.');
-      }
-
-      const newUserId = signUpData.user.id;
-
-      // 2. Create manager record - using the stored admin info in created_by
-      const { error: managerError } = await supabase
-        .from('managers')
-        .insert({
-          user_id: newUserId,
-          barbershop_id: adminBarbershopId,
-          name: formData.name.trim(),
-          email: formData.email.trim().toLowerCase(),
-          phone: formData.phone.trim() || null,
-          created_by: adminId,
-          active: false,
-          status: 'pending',
-        } as any);
-
-      if (managerError) {
-        // Check for RLS policy violation
-        if (managerError.message.includes('row-level security') || managerError.code === '42501') {
-          throw new Error('Sem permissão para criar gerente. Confirme se está logado como administrador.');
-        }
-        throw new Error(managerError.message);
-      }
-
-      // 3. Assign manager role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: newUserId,
-          role: 'manager',
-          barbershop_id: adminBarbershopId,
-        });
-
-      if (roleError) {
-        console.error('Error assigning role:', roleError);
-        // Don't throw - manager was created, role assignment is secondary
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar gerente');
       }
 
       toast({
         title: 'Gerente criado!',
-        description: `${formData.name} foi criado e aguarda ativação.`,
+        description: result.message || `${formData.name} foi criado e aguarda ativação.`,
       });
 
       setFormData({ name: '', email: '', phone: '', password: '' });
       setIsDialogOpen(false);
       
-      // Refresh the page to restore admin session
-      window.location.reload();
+      // Refresh the managers list (no page reload needed!)
+      fetchManagers();
     } catch (err: any) {
       console.error('Error creating manager:', err);
       
-      // Provide specific error messages
-      let errorMessage = 'Ocorreu um erro ao criar o gerente.';
-      if (err.message.includes('row-level security') || err.message.includes('permissão')) {
-        errorMessage = 'Sem permissão para criar gerente. Confirme se está logado como administrador.';
-      } else if (err.message.includes('already registered') || err.message.includes('already exists')) {
-        errorMessage = 'Este email já está cadastrado no sistema.';
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
       toast({
         title: 'Erro ao criar gerente',
-        description: errorMessage,
+        description: err.message || 'Ocorreu um erro ao criar o gerente.',
         variant: 'destructive',
       });
     } finally {
