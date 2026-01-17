@@ -11,6 +11,8 @@ import { Scissors, Plus, Edit2, Trash2, Users, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminBarbershop } from '@/hooks/useAdminBarbershop';
+import { ServiceImageManager } from '@/components/admin/ServiceImageManager';
+import { ServiceCoverImage } from '@/components/ServiceCoverImage';
 
 interface Service {
   id: string;
@@ -419,6 +421,16 @@ export default function ServicesList() {
                 )}
               </div>
 
+              {/* Galeria de fotos - aparece apenas ao editar */}
+              {editingService && barbershopId && (
+                <div className="border-t border-border pt-4">
+                  <ServiceImageManager
+                    serviceId={editingService.id}
+                    barbershopId={barbershopId}
+                  />
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <Label htmlFor="active">Ativo</Label>
                 <Switch
@@ -465,6 +477,14 @@ export default function ServicesList() {
                 return (
                   <div key={service.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
                     <div className="flex items-center gap-4">
+                      {/* Cover image thumbnail */}
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted/30 flex-shrink-0">
+                        <ServiceCoverImage
+                          serviceId={service.id}
+                          serviceName={service.name}
+                          className="w-full h-full"
+                        />
+                      </div>
                       <div className={`w-3 h-3 rounded-full ${service.active ? 'bg-green-500' : 'bg-muted'}`} />
                       <div>
                         <p className="font-medium text-foreground">{service.name}</p>

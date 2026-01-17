@@ -13,6 +13,7 @@ import { Calendar as CalendarIcon, Clock, User, Phone, Scissors, Check, MessageC
 import { useToast } from '@/hooks/use-toast';
 import { useBarbershop } from '@/hooks/useBarbershop';
 import { useBusinessType } from '@/hooks/useBusinessType';
+import { ServiceGallery } from '@/components/ServiceGallery';
 
 interface BookingFormProps {
   onBack: () => void;
@@ -637,6 +638,17 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Service Gallery - shows when service is selected */}
+              {formData.serviceId && (
+                <div className="pt-2">
+                  <ServiceGallery
+                    serviceId={formData.serviceId}
+                    serviceName={services.find(s => s.id === formData.serviceId)?.name || 'Serviço'}
+                    variant="full"
+                  />
+                </div>
+              )}
 
               {formData.serviceId && (
                 <div className="space-y-2">

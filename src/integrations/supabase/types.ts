@@ -503,6 +503,44 @@ export type Database = {
         }
         Relationships: []
       }
+      service_images: {
+        Row: {
+          barbershop_id: string
+          created_at: string
+          id: string
+          image_url: string
+          is_cover: boolean
+          service_id: string
+          sort_order: number
+        }
+        Insert: {
+          barbershop_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+          is_cover?: boolean
+          service_id: string
+          sort_order?: number
+        }
+        Update: {
+          barbershop_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_cover?: boolean
+          service_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_images_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_professionals: {
         Row: {
           barbershop_id: string
@@ -832,6 +870,15 @@ export type Database = {
           working_hours: Json
         }[]
       }
+      get_public_service_images: {
+        Args: { p_service_id: string }
+        Returns: {
+          id: string
+          image_url: string
+          is_cover: boolean
+          sort_order: number
+        }[]
+      }
       get_public_service_professionals: {
         Args: { p_barbershop_id: string }
         Returns: {
@@ -850,10 +897,21 @@ export type Database = {
           price: number
         }[]
       }
+      get_service_cover_image: {
+        Args: { p_service_id: string }
+        Returns: string
+      }
       get_service_professional_mappings: {
         Args: { p_barbershop_id: string }
         Returns: {
           professional_id: string
+          service_id: string
+        }[]
+      }
+      get_services_cover_images: {
+        Args: { p_barbershop_id: string }
+        Returns: {
+          cover_image_url: string
           service_id: string
         }[]
       }
