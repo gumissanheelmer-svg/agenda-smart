@@ -898,6 +898,10 @@ export type Database = {
         Returns: boolean
       }
       is_superadmin: { Args: { _user_id: string }; Returns: boolean }
+      rpc_update_appointment_status: {
+        Args: { p_appointment_id: string; p_new_status: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "barber" | "superadmin" | "manager"

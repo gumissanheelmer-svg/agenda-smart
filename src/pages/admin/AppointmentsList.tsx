@@ -119,15 +119,18 @@ export default function AppointmentsList() {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase
-      .from('appointments')
-      .update({ status })
-      .eq('id', id);
+    const { data, error } = await supabase
+      .rpc('rpc_update_appointment_status', { 
+        p_appointment_id: id, 
+        p_new_status: status 
+      });
 
-    if (error) {
+    const result = data as { success: boolean; error?: string } | null;
+
+    if (error || (result && !result.success)) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível atualizar o status.',
+        description: result?.error || 'Não foi possível atualizar o status.',
         variant: 'destructive',
       });
     } else {
