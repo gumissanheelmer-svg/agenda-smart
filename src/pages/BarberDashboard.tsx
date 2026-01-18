@@ -14,12 +14,16 @@ import {
   MessageCircle,
   UserCheck,
   UserX,
-  CheckCircle
+  CheckCircle,
+  Check,
+  X,
+  Play
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addDays } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 import { pt } from 'date-fns/locale';
 
 type DateFilter = 'today' | 'week' | 'all';
@@ -39,6 +43,7 @@ interface Appointment {
 
 export default function BarberDashboard() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { user, isApprovedBarber, barberAccount, isLoading, signOut } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -46,6 +51,7 @@ export default function BarberDashboard() {
   const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent' | 'pending'>('pending');
   const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
   const [hasAppAccess, setHasAppAccess] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && (!user || !isApprovedBarber)) {
@@ -174,12 +180,42 @@ export default function BarberDashboard() {
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
 
+  const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
+    setUpdatingStatus(appointmentId);
+    
+    const { data, error } = await supabase
+      .rpc('rpc_update_appointment_status', {
+        p_appointment_id: appointmentId,
+        p_new_status: newStatus
+      });
+
+    const result = data as { success: boolean; error?: string } | null;
+
+    if (error || (result && !result.success)) {
+      toast({
+        title: 'Erro',
+        description: result?.error || 'Não foi possível atualizar o status.',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Sucesso',
+        description: 'Status atualizado com sucesso.',
+      });
+      fetchAppointments();
+    }
+    
+    setUpdatingStatus(null);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
         return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Confirmado</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Pendente</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Em Atendimento</Badge>;
       case 'completed':
         return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Concluído</Badge>;
       case 'cancelled':
@@ -372,6 +408,61 @@ export default function BarberDashboard() {
                       </p>
                     )}
                     
+                    {/* Status action buttons */}
+                    {appointment.status === 'pending' && (
+                      <div className="flex gap-2 mb-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateAppointmentStatus(appointment.id, 'confirmed')}
+                          disabled={updatingStatus === appointment.id}
+                          className="flex-1 text-green-500 border-green-500/50 hover:bg-green-500/10"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Confirmar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
+                          disabled={updatingStatus === appointment.id}
+                          className="text-red-500 border-red-500/50 hover:bg-red-500/10"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {appointment.status === 'confirmed' && (
+                      <div className="flex gap-2 mb-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateAppointmentStatus(appointment.id, 'in_progress')}
+                          disabled={updatingStatus === appointment.id}
+                          className="flex-1 text-purple-500 border-purple-500/50 hover:bg-purple-500/10"
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Iniciar
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {appointment.status === 'in_progress' && (
+                      <div className="flex gap-2 mb-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                          disabled={updatingStatus === appointment.id}
+                          className="flex-1 text-blue-500 border-blue-500/50 hover:bg-blue-500/10"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Concluir
+                        </Button>
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
