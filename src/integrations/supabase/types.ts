@@ -747,6 +747,7 @@ export type Database = {
         }
         Returns: Json
       }
+      current_user_barbershop_id: { Args: never; Returns: string }
       get_appointment_summary_for_professional: {
         Args: { p_barber_id: string; p_date: string }
         Returns: {
@@ -932,6 +933,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_admin_or_manager_of_barbershop: {
+        Args: { _barbershop_id: string; _user_id: string }
         Returns: boolean
       }
       is_approved_barber: { Args: { _user_id: string }; Returns: boolean }
