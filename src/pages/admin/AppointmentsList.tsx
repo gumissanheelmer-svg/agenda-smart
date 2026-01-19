@@ -277,32 +277,8 @@ export default function AppointmentsList() {
                         </Button>
                       </>
                     )}
-                    {/* Barbearias: Iniciar → in_progress, depois Concluir */}
-                    {apt.status === 'confirmed' && isBarbershop && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateStatus(apt.id, 'in_progress')}
-                        className="text-purple-500 border-purple-500/50 hover:bg-purple-500/10"
-                      >
-                        <Play className="w-4 h-4 mr-1" />
-                        Iniciar
-                      </Button>
-                    )}
-                    {/* Salões/Híbridos: Vai direto para Concluir */}
-                    {apt.status === 'confirmed' && !isBarbershop && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateStatus(apt.id, 'completed')}
-                        className="text-blue-500 border-blue-500/50 hover:bg-blue-500/10"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Concluir
-                      </Button>
-                    )}
-                    {/* Barbearias: Após iniciar, pode concluir */}
-                    {apt.status === 'in_progress' && (
+                    {/* Botão único: Concluir para todos os tipos de negócio */}
+                    {(apt.status === 'confirmed' || apt.status === 'in_progress') && (
                       <Button
                         size="sm"
                         variant="outline"

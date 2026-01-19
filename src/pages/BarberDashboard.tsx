@@ -433,22 +433,8 @@ export default function BarberDashboard() {
                       </div>
                     )}
                     
-                    {appointment.status === 'confirmed' && (
-                      <div className="flex gap-2 mb-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateAppointmentStatus(appointment.id, 'in_progress')}
-                          disabled={updatingStatus === appointment.id}
-                          className="flex-1 text-purple-500 border-purple-500/50 hover:bg-purple-500/10"
-                        >
-                          <Play className="w-4 h-4 mr-1" />
-                          Iniciar
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {appointment.status === 'in_progress' && (
+                    {/* Botão único: Concluir para todos os tipos de negócio */}
+                    {(appointment.status === 'confirmed' || appointment.status === 'in_progress') && (
                       <div className="flex gap-2 mb-3">
                         <Button
                           size="sm"
