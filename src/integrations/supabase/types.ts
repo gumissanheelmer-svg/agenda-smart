@@ -748,6 +748,16 @@ export type Database = {
         Returns: Json
       }
       current_user_barbershop_id: { Args: never; Returns: string }
+      get_appointment_stats_for_barbershop: {
+        Args: { p_barbershop_id: string; p_date?: string }
+        Returns: {
+          cancelled_count: number
+          completed_count: number
+          confirmed_count: number
+          pending_count: number
+          total_appointments: number
+        }[]
+      }
       get_appointment_summary_for_professional: {
         Args: { p_barber_id: string; p_date: string }
         Returns: {
