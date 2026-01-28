@@ -64,7 +64,7 @@ export default function ForgotPassword() {
     return (
       <>
         <Helmet>
-          <title>Email Enviado - Barbearia Elite</title>
+          <title>Email Enviado - Agenda Smart</title>
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
 
@@ -115,9 +115,9 @@ export default function ForgotPassword() {
 
   return (
     <>
-      <Helmet>
-        <title>Recuperar Senha - Barbearia Elite</title>
-        <meta name="robots" content="noindex, nofollow" />
+        <Helmet>
+          <title>Recuperar Senha - Agenda Smart</title>
+          <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">

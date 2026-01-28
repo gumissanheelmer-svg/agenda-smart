@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Lock, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,32 +20,77 @@ export default function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
-  const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
+  const [sessionState, setSessionState] = useState<'loading' | 'valid' | 'invalid' | 'error'>('loading');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
-    // Check if we have a valid recovery session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // The user should have a session from clicking the reset link
-      if (session) {
-        setIsValidSession(true);
-      } else {
-        setIsValidSession(false);
+    const initializeRecoverySession = async () => {
+      try {
+        // Check for hash fragments (Supabase sends tokens in hash)
+        const hashParams = new URLSearchParams(location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
+        const errorCode = hashParams.get('error_code');
+        const errorDescription = hashParams.get('error_description');
+
+        // Handle error in URL (expired or invalid token)
+        if (errorCode || errorDescription) {
+          console.error('Recovery error:', errorCode, errorDescription);
+          setErrorMessage(errorDescription || 'O link de recuperação é inválido ou expirou.');
+          setSessionState('invalid');
+          return;
+        }
+
+        // If we have tokens in the hash, set the session
+        if (accessToken && refreshToken && type === 'recovery') {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) {
+            console.error('Error setting recovery session:', error);
+            setErrorMessage('Não foi possível validar o link de recuperação.');
+            setSessionState('invalid');
+            return;
+          }
+
+          // Clear hash from URL for cleaner UX
+          window.history.replaceState(null, '', location.pathname);
+          setSessionState('valid');
+          return;
+        }
+
+        // Check if we already have a valid session (user might have refreshed the page)
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          setSessionState('valid');
+          return;
+        }
+
+        // No valid session or tokens found
+        setErrorMessage('Nenhum link de recuperação válido encontrado. Solicite um novo link.');
+        setSessionState('invalid');
+      } catch (error) {
+        console.error('Error initializing recovery:', error);
+        setErrorMessage('Ocorreu um erro ao processar o link de recuperação.');
+        setSessionState('error');
       }
     };
 
-    checkSession();
+    initializeRecoverySession();
 
-    // Listen for auth state changes (when user clicks the reset link)
+    // Listen for PASSWORD_RECOVERY event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        setIsValidSession(true);
+        setSessionState('valid');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,10 +138,13 @@ export default function ResetPassword() {
         return;
       }
 
+      // Sign out the user after password reset
+      await supabase.auth.signOut();
+
       setResetSuccess(true);
       toast({
-        title: 'Senha redefinida!',
-        description: 'Sua senha foi alterada com sucesso.',
+        title: 'Senha atualizada!',
+        description: 'Sua senha foi alterada com sucesso. Pode entrar novamente.',
       });
 
       // Redirect to login after 3 seconds
@@ -114,23 +163,38 @@ export default function ResetPassword() {
   };
 
   // Loading state
-  if (isValidSession === null) {
+  if (sessionState === 'loading') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-center">
-          <Logo size="lg" />
-          <p className="text-muted-foreground mt-4">Verificando...</p>
+      <>
+        <Helmet>
+          <title>Verificando... - Agenda Smart</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="fixed inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
+          </div>
+          
+          <div className="text-center relative z-10">
+            <Logo size="lg" />
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <p className="text-muted-foreground">Verificando link de recuperação...</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Invalid or expired link
-  if (!isValidSession) {
+  if (sessionState === 'invalid' || sessionState === 'error') {
     return (
       <>
         <Helmet>
-          <title>Link Inválido - Barbearia Elite</title>
+          <title>Link Inválido - Agenda Smart</title>
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
 
@@ -156,12 +220,17 @@ export default function ResetPassword() {
                 </h2>
                 
                 <p className="text-muted-foreground mb-6">
-                  O link de recuperação de senha é inválido ou já expirou. Solicite um novo link.
+                  {errorMessage || 'O link de recuperação de senha é inválido ou já expirou. Solicite um novo link.'}
                 </p>
 
-                <Button variant="gold" onClick={() => navigate('/forgot-password')}>
-                  Solicitar Novo Link
-                </Button>
+                <div className="flex flex-col gap-3">
+                  <Button variant="gold" onClick={() => navigate('/forgot-password')}>
+                    Solicitar Novo Link
+                  </Button>
+                  <Button variant="ghost" onClick={() => navigate('/login')}>
+                    Voltar ao Login
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -175,7 +244,7 @@ export default function ResetPassword() {
     return (
       <>
         <Helmet>
-          <title>Senha Redefinida - Barbearia Elite</title>
+          <title>Senha Atualizada - Agenda Smart</title>
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
 
@@ -197,11 +266,11 @@ export default function ResetPassword() {
                 </div>
                 
                 <h2 className="text-2xl font-display text-foreground mb-4">
-                  Senha Redefinida!
+                  Senha Atualizada com Sucesso!
                 </h2>
                 
                 <p className="text-muted-foreground mb-6">
-                  Sua senha foi alterada com sucesso. Você será redirecionado para o login...
+                  Sua senha foi alterada com sucesso. Pode entrar novamente com a nova senha.
                 </p>
 
                 <Button variant="gold" onClick={() => navigate('/login')}>
@@ -215,10 +284,11 @@ export default function ResetPassword() {
     );
   }
 
+  // Password reset form
   return (
     <>
       <Helmet>
-        <title>Redefinir Senha - Barbearia Elite</title>
+        <title>Redefinir Senha - Agenda Smart</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
@@ -289,15 +359,28 @@ export default function ResetPassword() {
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-xs text-destructive">As senhas não coincidem</p>
+                  )}
+                  {confirmPassword && password === confirmPassword && password.length >= 6 && (
+                    <p className="text-xs text-primary">✓ Senhas coincidem</p>
+                  )}
                 </div>
 
                 <Button
                   type="submit"
                   variant="gold"
                   className="w-full mt-6"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || password.length < 6 || password !== confirmPassword}
                 >
-                  {isSubmitting ? 'Salvando...' : 'Salvar Nova Senha'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Atualizando...
+                    </>
+                  ) : (
+                    'Atualizar Senha'
+                  )}
                 </Button>
               </form>
             </CardContent>
