@@ -371,6 +371,69 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_confirmations: {
+        Row: {
+          amount_detected: number | null
+          amount_expected: number
+          appointment_id: string
+          barbershop_id: string
+          confirmation_text: string
+          created_at: string
+          id: string
+          payment_method: string
+          phone_detected: string | null
+          phone_expected: string | null
+          reject_reason: string | null
+          status: string
+          transaction_code: string
+        }
+        Insert: {
+          amount_detected?: number | null
+          amount_expected: number
+          appointment_id: string
+          barbershop_id: string
+          confirmation_text: string
+          created_at?: string
+          id?: string
+          payment_method: string
+          phone_detected?: string | null
+          phone_expected?: string | null
+          reject_reason?: string | null
+          status?: string
+          transaction_code: string
+        }
+        Update: {
+          amount_detected?: number | null
+          amount_expected?: number
+          appointment_id?: string
+          barbershop_id?: string
+          confirmation_text?: string
+          created_at?: string
+          id?: string
+          payment_method?: string
+          phone_detected?: string | null
+          phone_expected?: string | null
+          reject_reason?: string | null
+          status?: string
+          transaction_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_confirmations_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_confirmations_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       professional_attendance: {
         Row: {
           attendance_date: string
@@ -990,6 +1053,21 @@ export type Database = {
       is_superadmin: { Args: { _user_id: string }; Returns: boolean }
       rpc_update_appointment_status: {
         Args: { p_appointment_id: string; p_new_status: string }
+        Returns: Json
+      }
+      validate_and_confirm_payment: {
+        Args: {
+          p_amount_detected?: number
+          p_amount_expected: number
+          p_appointment_id: string
+          p_barbershop_id: string
+          p_confirmation_text: string
+          p_max_hours?: number
+          p_payment_method: string
+          p_phone_detected?: string
+          p_phone_expected: string
+          p_transaction_code: string
+        }
         Returns: Json
       }
     }
