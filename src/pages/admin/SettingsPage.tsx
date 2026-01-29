@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings as SettingsIcon, Save, MessageCircle, Palette, Image, Upload, Trash2, ImageIcon, CreditCard, Smartphone } from 'lucide-react';
+import { Settings as SettingsIcon, Save, MessageCircle, Palette, Image, Upload, Trash2, ImageIcon, CreditCard, Smartphone, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 
 interface BarbershopSettings {
   id: string;
@@ -28,6 +29,7 @@ interface BarbershopSettings {
   mpesa_number: string | null;
   emola_number: string | null;
   payment_methods_enabled: string[];
+  payment_required: boolean;
 }
 
 const getBusinessLabels = (type: string) => {
@@ -131,6 +133,7 @@ export default function SettingsPage() {
         mpesa_number: settings.mpesa_number,
         emola_number: settings.emola_number,
         payment_methods_enabled: settings.payment_methods_enabled,
+        payment_required: settings.payment_required,
       })
       .eq('id', settings.id);
 
@@ -618,95 +621,125 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Payment Methods */}
+        {/* Payments & Confirmation */}
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-4">
             <CardTitle className="font-display flex items-center gap-2 text-lg sm:text-xl">
               <CreditCard className="w-5 h-5 text-primary" />
-              Métodos de Pagamento
+              Pagamentos & Confirmação
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-sm text-muted-foreground">
-              Configure os métodos de pagamento disponíveis para seus clientes confirmarem o pagamento do agendamento.
-            </p>
-
-            {/* M-Pesa */}
-            <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-secondary/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="w-5 h-5 text-red-500" />
-                  <div>
-                    <p className="font-medium">M-Pesa</p>
-                    <p className="text-xs text-muted-foreground">Vodacom Moçambique</p>
-                  </div>
-                </div>
-                <Checkbox
-                  id="mpesa_enabled"
-                  checked={settings.payment_methods_enabled?.includes('mpesa') || false}
-                  onCheckedChange={(checked) => {
-                    const methods = settings.payment_methods_enabled || [];
-                    if (checked) {
-                      setSettings({ ...settings, payment_methods_enabled: [...methods, 'mpesa'] });
-                    } else {
-                      setSettings({ ...settings, payment_methods_enabled: methods.filter(m => m !== 'mpesa') });
-                    }
-                  }}
-                />
+            {/* Payment Required Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-secondary/20">
+              <div className="space-y-0.5">
+                <Label htmlFor="payment_required" className="text-base font-medium cursor-pointer">
+                  Pagamento obrigatório para confirmar agendamento
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Quando ativado, os clientes devem validar o código de transação antes de enviar a confirmação no WhatsApp.
+                </p>
               </div>
-              {settings.payment_methods_enabled?.includes('mpesa') && (
-                <div className="space-y-2 pt-2">
-                  <Label htmlFor="mpesa_number" className="text-sm">Número M-Pesa para receber</Label>
-                  <Input
-                    id="mpesa_number"
-                    value={settings.mpesa_number || ''}
-                    onChange={(e) => setSettings({ ...settings, mpesa_number: e.target.value })}
-                    placeholder="84 XXX XXXX"
-                    className="bg-input border-border"
-                  />
-                </div>
-              )}
+              <Switch
+                id="payment_required"
+                checked={settings.payment_required || false}
+                onCheckedChange={(checked) => setSettings({ ...settings, payment_required: checked })}
+              />
             </div>
 
-            {/* eMola */}
-            <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-secondary/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="w-5 h-5 text-orange-500" />
-                  <div>
-                    <p className="font-medium">eMola</p>
-                    <p className="text-xs text-muted-foreground">Movitel Moçambique</p>
+            {/* Show payment methods only when payment is required */}
+            {settings.payment_required && (
+              <>
+                {/* M-Pesa */}
+                <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-secondary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-5 h-5 text-red-500" />
+                      <div>
+                        <p className="font-medium">M-Pesa</p>
+                        <p className="text-xs text-muted-foreground">Vodacom Moçambique (84/85)</p>
+                      </div>
+                    </div>
+                    <Checkbox
+                      id="mpesa_enabled"
+                      checked={settings.payment_methods_enabled?.includes('mpesa') || false}
+                      onCheckedChange={(checked) => {
+                        const methods = settings.payment_methods_enabled || [];
+                        if (checked) {
+                          setSettings({ ...settings, payment_methods_enabled: [...methods, 'mpesa'] });
+                        } else {
+                          setSettings({ ...settings, payment_methods_enabled: methods.filter(m => m !== 'mpesa') });
+                        }
+                      }}
+                    />
                   </div>
+                  {settings.payment_methods_enabled?.includes('mpesa') && (
+                    <div className="space-y-2 pt-2">
+                      <Label htmlFor="mpesa_number" className="text-sm">Número M-Pesa para receber pagamentos</Label>
+                      <Input
+                        id="mpesa_number"
+                        value={settings.mpesa_number || ''}
+                        onChange={(e) => setSettings({ ...settings, mpesa_number: e.target.value })}
+                        placeholder="84 XXX XXXX ou 85 XXX XXXX"
+                        className="bg-input border-border"
+                      />
+                    </div>
+                  )}
                 </div>
-                <Checkbox
-                  id="emola_enabled"
-                  checked={settings.payment_methods_enabled?.includes('emola') || false}
-                  onCheckedChange={(checked) => {
-                    const methods = settings.payment_methods_enabled || [];
-                    if (checked) {
-                      setSettings({ ...settings, payment_methods_enabled: [...methods, 'emola'] });
-                    } else {
-                      setSettings({ ...settings, payment_methods_enabled: methods.filter(m => m !== 'emola') });
-                    }
-                  }}
-                />
-              </div>
-              {settings.payment_methods_enabled?.includes('emola') && (
-                <div className="space-y-2 pt-2">
-                  <Label htmlFor="emola_number" className="text-sm">Número eMola para receber</Label>
-                  <Input
-                    id="emola_number"
-                    value={settings.emola_number || ''}
-                    onChange={(e) => setSettings({ ...settings, emola_number: e.target.value })}
-                    placeholder="86 XXX XXXX"
-                    className="bg-input border-border"
-                  />
+
+                {/* eMola */}
+                <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-secondary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-5 h-5 text-orange-500" />
+                      <div>
+                        <p className="font-medium">eMola</p>
+                        <p className="text-xs text-muted-foreground">Movitel Moçambique (86/87)</p>
+                      </div>
+                    </div>
+                    <Checkbox
+                      id="emola_enabled"
+                      checked={settings.payment_methods_enabled?.includes('emola') || false}
+                      onCheckedChange={(checked) => {
+                        const methods = settings.payment_methods_enabled || [];
+                        if (checked) {
+                          setSettings({ ...settings, payment_methods_enabled: [...methods, 'emola'] });
+                        } else {
+                          setSettings({ ...settings, payment_methods_enabled: methods.filter(m => m !== 'emola') });
+                        }
+                      }}
+                    />
+                  </div>
+                  {settings.payment_methods_enabled?.includes('emola') && (
+                    <div className="space-y-2 pt-2">
+                      <Label htmlFor="emola_number" className="text-sm">Número eMola para receber pagamentos</Label>
+                      <Input
+                        id="emola_number"
+                        value={settings.emola_number || ''}
+                        onChange={(e) => setSettings({ ...settings, emola_number: e.target.value })}
+                        placeholder="86 XXX XXXX ou 87 XXX XXXX"
+                        className="bg-input border-border"
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+
+                {/* Warning if no payment method selected */}
+                {settings.payment_required && settings.payment_methods_enabled?.length === 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                    <p className="text-sm text-destructive">
+                      Ative pelo menos um método de pagamento ou desative o pagamento obrigatório.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             <p className="text-xs text-muted-foreground">
-              Quando ativado, os clientes verão instruções para transferir o valor do serviço e colar a mensagem de confirmação antes de enviar no WhatsApp.
+              {settings.payment_required 
+                ? 'Os clientes verão instruções para transferir o valor e colar a mensagem de confirmação antes de enviar no WhatsApp.'
+                : 'Sem pagamento obrigatório, o cliente verá apenas uma mensagem de confirmação simples após agendar.'}
             </p>
           </CardContent>
         </Card>

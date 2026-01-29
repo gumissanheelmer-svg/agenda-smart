@@ -19,6 +19,8 @@ export interface Barbershop {
   mpesa_number: string | null;
   emola_number: string | null;
   payment_methods_enabled: string[];
+  whatsapp_number: string | null;
+  payment_required: boolean;
 }
 
 interface BarbershopContextType {
@@ -68,6 +70,8 @@ export function BarbershopProvider({ children }: { children: ReactNode }) {
         mpesa_number: barbershopData.mpesa_number || null,
         emola_number: barbershopData.emola_number || null,
         payment_methods_enabled: barbershopData.payment_methods_enabled || [],
+        whatsapp_number: barbershopData.whatsapp_number || null,
+        payment_required: barbershopData.payment_required || false,
       } as Barbershop);
       setIsLoading(false);
       return true;

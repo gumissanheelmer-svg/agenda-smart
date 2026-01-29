@@ -832,10 +832,12 @@ export type Database = {
           name: string
           opening_time: string
           payment_methods_enabled: string[]
+          payment_required: boolean
           primary_color: string
           secondary_color: string
           slug: string
           text_color: string
+          whatsapp_number: string
         }[]
       }
       get_public_business: {

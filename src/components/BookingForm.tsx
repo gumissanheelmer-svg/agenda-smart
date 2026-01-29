@@ -418,6 +418,9 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
       high: 'bg-black/70',
     }[backgroundOverlayLevel];
 
+    // If payment is NOT required, show simple success message without WhatsApp button
+    const paymentRequired = barbershop?.payment_required || false;
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
         {/* Background Image */}
@@ -437,10 +440,12 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
             </div>
             
             <h2 className="text-2xl font-display font-bold text-foreground mb-2">
-              Agendamento Confirmado!
+              Agendamento Realizado!
             </h2>
             <p className="text-muted-foreground mb-6">
-              Seu horário foi reservado com sucesso.
+              {paymentRequired 
+                ? 'Complete o pagamento e envie a confirmação no WhatsApp.'
+                : 'Seu horário foi reservado. Aguarde confirmação.'}
             </p>
 
             <div className="bg-secondary/50 rounded-lg p-4 mb-6 text-left space-y-2">
@@ -464,17 +469,20 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
               </div>
             </div>
 
-            <a 
-              href={getWhatsAppLink()} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="w-full"
-            >
-              <Button variant="gold" size="lg" className="w-full mb-4">
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Enviar confirmação pelo WhatsApp
-              </Button>
-            </a>
+            {/* Only show WhatsApp button if payment is NOT required */}
+            {!paymentRequired && (
+              <a 
+                href={getWhatsAppLink()} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full block"
+              >
+                <Button variant="gold" size="lg" className="w-full mb-4">
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Enviar confirmação pelo WhatsApp
+                </Button>
+              </a>
+            )}
 
             <Button variant="outline" className="w-full" onClick={onBack}>
               Voltar ao início
@@ -511,9 +519,9 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
           ← Voltar
         </Button>
 
-        {/* Progress indicator - show 4 steps if payment is enabled */}
+        {/* Progress indicator - show 4 steps if payment is required */}
         {(() => {
-          const hasPayment = (barbershop?.payment_methods_enabled?.length ?? 0) > 0;
+          const hasPayment = barbershop?.payment_required || false;
           const totalSteps = hasPayment ? 4 : 3;
           return (
             <div className="flex items-center justify-center gap-2 mb-8">
@@ -760,7 +768,7 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
                   variant="gold"
                   className="flex-1"
                   onClick={() => {
-                    const hasPayment = (barbershop?.payment_methods_enabled?.length ?? 0) > 0;
+                    const hasPayment = barbershop?.payment_required || false;
                     if (hasPayment) {
                       // Go to payment step
                       setStep(4);
@@ -771,7 +779,7 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
                   }}
                   disabled={!formData.appointmentDate || !formData.appointmentTime || isLoading}
                 >
-                  {isLoading ? 'Agendando...' : (barbershop?.payment_methods_enabled?.length ?? 0) > 0 ? 'Continuar' : 'Confirmar'}
+                  {isLoading ? 'Agendando...' : (barbershop?.payment_required ? 'Continuar' : 'Confirmar')}
                 </Button>
               </div>
             </CardContent>
