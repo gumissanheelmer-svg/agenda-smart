@@ -236,6 +236,7 @@ export type Database = {
           opening_time: string | null
           owner_email: string | null
           payment_methods_enabled: string[] | null
+          payment_required: boolean
           primary_color: string
           secondary_color: string
           slug: string
@@ -260,6 +261,7 @@ export type Database = {
           opening_time?: string | null
           owner_email?: string | null
           payment_methods_enabled?: string[] | null
+          payment_required?: boolean
           primary_color?: string
           secondary_color?: string
           slug: string
@@ -284,6 +286,7 @@ export type Database = {
           opening_time?: string | null
           owner_email?: string | null
           payment_methods_enabled?: string[] | null
+          payment_required?: boolean
           primary_color?: string
           secondary_color?: string
           slug?: string
