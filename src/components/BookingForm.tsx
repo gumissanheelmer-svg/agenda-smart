@@ -9,13 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkingHours } from '@/lib/types';
 import { format, addDays, isBefore, startOfDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Clock, User, Phone, Scissors, Check, MessageCircle, Sparkles, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, User, Phone, Scissors, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBarbershop } from '@/hooks/useBarbershop';
 import { useBusinessType } from '@/hooks/useBusinessType';
 import { ServiceGallery } from '@/components/ServiceGallery';
 import { PaymentStep } from '@/components/booking/PaymentStep';
-import { getClientToBusinessMessage, generateWhatsAppLink } from '@/lib/whatsappTemplates';
 import { PaymentMethod } from '@/lib/paymentCodeExtractor';
 
 interface BookingFormProps {
@@ -91,7 +90,6 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState<any>(null);
-  const [whatsappNumber, setWhatsappNumber] = useState('+258840000000');
   const [phoneError, setPhoneError] = useState<string>('');
   const [bookingError, setBookingError] = useState<string>('');
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -347,18 +345,6 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
         return;
       }
 
-      // Get WhatsApp number using secure RPC
-      let fetchedWhatsapp = whatsappNumber;
-      if (result.appointment_id) {
-        const { data: whatsappData } = await supabase.rpc('get_barbershop_whatsapp_for_appointment', {
-          p_appointment_id: result.appointment_id
-        });
-        if (whatsappData) {
-          fetchedWhatsapp = whatsappData;
-          setWhatsappNumber(whatsappData);
-        }
-      }
-
       // Create appointment object for display
       setCreatedAppointment({
         id: result.appointment_id,
@@ -387,27 +373,6 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
     }
   };
 
-  const getWhatsAppLink = () => {
-    if (!createdAppointment) return '#';
-
-    const professionalName = professionals.find(p => p.id === createdAppointment.barber_id)?.name || 'N/A';
-    const service = services.find(s => s.id === createdAppointment.service_id);
-    const serviceName = service?.name || 'N/A';
-    const servicePrice = service?.price || 0;
-
-    const message = getClientToBusinessMessage({
-      clientName: createdAppointment.client_name,
-      professionalName,
-      serviceName,
-      appointmentDate: createdAppointment.appointment_date,
-      appointmentTime: createdAppointment.appointment_time,
-      price: servicePrice,
-      businessName: barbershop?.name,
-    });
-
-    return generateWhatsAppLink(whatsappNumber, message);
-  };
-
   if (isSuccess && createdAppointment) {
     const professionalName = professionals.find(p => p.id === createdAppointment.barber_id)?.name;
     const serviceName = services.find(s => s.id === createdAppointment.service_id)?.name;
@@ -417,9 +382,6 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
       medium: 'bg-black/50',
       high: 'bg-black/70',
     }[backgroundOverlayLevel];
-
-    // If payment is NOT required, show simple success message without WhatsApp button
-    const paymentRequired = barbershop?.payment_required || false;
 
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
@@ -443,9 +405,7 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
               Agendamento Realizado!
             </h2>
             <p className="text-muted-foreground mb-6">
-              {paymentRequired 
-                ? 'Complete o pagamento e envie a confirmação no WhatsApp.'
-                : 'Seu horário foi reservado. Aguarde confirmação.'}
+              Seu horário foi reservado. Aguarde confirmação.
             </p>
 
             <div className="bg-secondary/50 rounded-lg p-4 mb-6 text-left space-y-2">
@@ -468,21 +428,6 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
                 <span className="text-foreground font-medium">{createdAppointment.appointment_time}</span>
               </div>
             </div>
-
-            {/* Only show WhatsApp button if payment is NOT required */}
-            {!paymentRequired && (
-              <a 
-                href={getWhatsAppLink()} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full block"
-              >
-                <Button variant="gold" size="lg" className="w-full mb-4">
-                  <MessageCircle className="w-5 h-5 mr-2" />
-                  Enviar confirmação pelo WhatsApp
-                </Button>
-              </a>
-            )}
 
             <Button variant="outline" className="w-full" onClick={onBack}>
               Voltar ao início
@@ -794,7 +739,7 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
             )}
             mpesaNumber={barbershop?.mpesa_number || null}
             emolaNumber={barbershop?.emola_number || null}
-            whatsappNumber={whatsappNumber}
+            whatsappNumber={barbershop?.whatsapp_number || ''}
             businessName={barbershop?.name || ''}
             clientName={formData.clientName}
             appointmentDate={formData.appointmentDate!}
@@ -813,3 +758,4 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
     </div>
   );
 }
+

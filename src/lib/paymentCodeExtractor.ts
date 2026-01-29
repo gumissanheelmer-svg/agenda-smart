@@ -12,19 +12,19 @@ export interface ExtractedCode {
 }
 
 /**
- * M-Pesa transaction code pattern
- * - Starts with "DA"
- * - Exactly 11 characters
- * - Only uppercase letters and numbers
+ * M-Pesa transaction code pattern (Mozambique)
+ * - 10 to 12 characters
+ * - Uppercase letters and numbers
+ * - Heuristic: must contain at least 1 letter and 1 digit
  */
-const MPESA_PATTERN = /\bDA[A-Z0-9]{9}\b/g;
+const MPESA_PATTERN = /\b[A-Z0-9]{10,12}\b/g;
 
 /**
  * eMola transaction code pattern
- * - Starts with "PP"
+ * - Starts with "PP" or "CI"
  * - Can contain uppercase letters, numbers, and dots
  */
-const EMOLA_PATTERN = /\bPP[A-Z0-9.]+\b/g;
+const EMOLA_PATTERN = /\b(?:PP|CI)[A-Z0-9.]{6,}\b/g;
 
 /**
  * Extract transaction codes from a message
@@ -50,6 +50,9 @@ export function extractTransactionCodes(message: string): ExtractedCode[] {
   const mpesaMatches = upperMessage.match(MPESA_PATTERN);
   if (mpesaMatches) {
     mpesaMatches.forEach(code => {
+      // Heuristic: avoid generic matches (must include at least 1 letter and 1 digit)
+      if (!/[A-Z]/.test(code) || !/\d/.test(code)) return;
+
       // Avoid duplicates
       const isDuplicate = codes.some(c => c.code === code);
       if (!isDuplicate) {
@@ -86,18 +89,19 @@ export function getBestCode(codes: ExtractedCode[]): ExtractedCode | null {
 export function validateManualCode(code: string): { isValid: boolean; method: PaymentMethod | null } {
   const upperCode = code.toUpperCase().trim();
   
-  // Check M-Pesa pattern: starts with DA, exactly 11 chars, only letters and numbers
-  if (/^DA[A-Z0-9]{9}$/.test(upperCode)) {
+  // Check M-Pesa pattern: 10-12 chars, letters+numbers (must contain at least 1 letter and 1 digit)
+  if (/^[A-Z0-9]{10,12}$/.test(upperCode) && /[A-Z]/.test(upperCode) && /\d/.test(upperCode)) {
     return { isValid: true, method: 'mpesa' };
   }
   
-  // Check eMola pattern: starts with PP, contains letters, numbers, and dots
-  if (/^PP[A-Z0-9.]+$/.test(upperCode) && upperCode.length >= 4) {
+  // Check eMola pattern: starts with PP or CI, contains letters, numbers, and dots
+  if (/^(PP|CI)[A-Z0-9.]{6,}$/.test(upperCode)) {
     return { isValid: true, method: 'emola' };
   }
   
   return { isValid: false, method: null };
 }
+
 
 /**
  * Generate payment instructions for a given method

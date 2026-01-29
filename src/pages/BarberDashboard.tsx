@@ -25,7 +25,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { pt } from 'date-fns/locale';
-import { getProfessionalToClientMessage, generateWhatsAppLink, BusinessType } from '@/lib/whatsappTemplates';
+import { getProfessionalToClientMessage, BusinessType } from '@/lib/whatsappTemplates';
+import { openWhatsApp } from '@/lib/whatsapp';
 
 type DateFilter = 'today' | 'week' | 'all';
 
@@ -191,9 +192,16 @@ export default function BarberDashboard() {
     navigate('/login');
   };
 
-  const openWhatsApp = (phone: string, clientName: string) => {
+  const handleOpenWhatsApp = (phone: string, clientName: string) => {
     const message = getProfessionalToClientMessage(clientName, businessType as BusinessType);
-    window.open(generateWhatsAppLink(phone, message), '_blank');
+    const opened = openWhatsApp(phone, message);
+    if (!opened) {
+      toast({
+        title: 'Número inválido',
+        description: 'Número de WhatsApp inválido. Verifique e tente novamente.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
@@ -470,7 +478,7 @@ export default function BarberDashboard() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => openWhatsApp(appointment.client_phone, appointment.client_name)}
+                        onClick={() => handleOpenWhatsApp(appointment.client_phone, appointment.client_name)}
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
                         WhatsApp
@@ -495,3 +503,4 @@ export default function BarberDashboard() {
     </>
   );
 }
+

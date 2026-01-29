@@ -10,7 +10,8 @@ import { Calendar, Search, MessageCircle, Check, X, Filter, Play } from 'lucide-
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminBarbershop } from '@/hooks/useAdminBarbershop';
-import { getBusinessToClientMessage, generateWhatsAppLink, BusinessType } from '@/lib/whatsappTemplates';
+import { getBusinessToClientMessage, BusinessType } from '@/lib/whatsappTemplates';
+import { openWhatsApp } from '@/lib/whatsapp';
 
 interface AppointmentWithDetails {
   id: string;
@@ -33,7 +34,6 @@ export default function AppointmentsList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
-  const [whatsappNumber, setWhatsappNumber] = useState('+258840000000');
 
   const businessType = barbershop?.business_type || 'barbearia';
   const isBarbershop = businessType === 'barbearia';
@@ -69,7 +69,6 @@ export default function AppointmentsList() {
   useEffect(() => {
     if (barbershopId) {
       fetchAppointments();
-      fetchBarbershopSettings();
     }
   }, [barbershopId]);
 
@@ -83,20 +82,6 @@ export default function AppointmentsList() {
 
     if (data?.barbershop_id) {
       setBarbershopId(data.barbershop_id);
-    }
-  };
-
-  const fetchBarbershopSettings = async () => {
-    if (!barbershopId) return;
-    
-    const { data } = await supabase
-      .from('barbershops')
-      .select('whatsapp_number')
-      .eq('id', barbershopId)
-      .maybeSingle();
-    
-    if (data?.whatsapp_number) {
-      setWhatsappNumber(data.whatsapp_number);
     }
   };
 
@@ -143,8 +128,8 @@ export default function AppointmentsList() {
     }
   };
 
-  const getWhatsAppLink = (apt: AppointmentWithDetails) => {
-    const message = getBusinessToClientMessage(
+  const buildWhatsAppMessage = (apt: AppointmentWithDetails) => {
+    return getBusinessToClientMessage(
       {
         clientName: apt.client_name,
         professionalName: apt.barber?.name || 'N/A',
@@ -156,7 +141,6 @@ export default function AppointmentsList() {
       businessType as BusinessType,
       professionalLabel
     );
-    return generateWhatsAppLink(apt.client_phone, message);
   };
 
   const filteredAppointments = appointments.filter((apt) => {
@@ -290,11 +274,23 @@ export default function AppointmentsList() {
                         Concluir
                       </Button>
                     )}
-                    <a href={getWhatsAppLink(apt)} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="gold">
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
-                    </a>
+                    <Button
+                      size="sm"
+                      variant="gold"
+                      onClick={() => {
+                        const message = buildWhatsAppMessage(apt);
+                        const opened = openWhatsApp(apt.client_phone, message);
+                        if (!opened) {
+                          toast({
+                            title: 'Número inválido',
+                            description: 'Número de WhatsApp inválido. Verifique e tente novamente.',
+                            variant: 'destructive',
+                          });
+                        }
+                      }}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

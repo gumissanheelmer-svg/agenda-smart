@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { normalizeMozWhatsapp } from '@/lib/whatsapp';
 
 export type BusinessType = 'barbearia' | 'salao' | 'salao_barbearia';
 
@@ -10,6 +11,7 @@ interface AppointmentDetails {
   appointmentTime: string;
   price: number;
   businessName?: string;
+  paymentMethod?: string;
   transactionCode?: string;
 }
 
@@ -20,8 +22,11 @@ interface AppointmentDetails {
 export function getClientToBusinessMessage(details: AppointmentDetails): string {
   const formattedDate = format(new Date(details.appointmentDate), 'dd/MM/yyyy');
   const businessName = details.businessName || 'Estabelecimento';
-  const transactionLine = details.transactionCode?.trim() 
-    ? `\n💳 Código da transação: ${details.transactionCode.trim()}` 
+  const transactionCode = details.transactionCode?.trim();
+  const hasPayment = Boolean(transactionCode);
+
+  const paymentBlock = hasPayment
+    ? `\n\n💳 Método: ${details.paymentMethod || ''}\n\n🔐 Código da transação: ${transactionCode}`
     : '';
 
   return `Olá! 👋
@@ -29,11 +34,16 @@ export function getClientToBusinessMessage(details: AppointmentDetails): string 
 Fiz um agendamento na ${businessName} 💈
 
 👤 Cliente: ${details.clientName}
+
 ✂️ Serviço: ${details.serviceName}
+
 💈 Profissional: ${details.professionalName}
+
 📅 Data: ${formattedDate}
+
 ⏰ Hora: ${details.appointmentTime}
-💰 Valor: ${details.price.toFixed(0)} MZN${transactionLine}
+
+💰 Valor: ${details.price.toFixed(0)} MZN${paymentBlock}
 
 Aguardo confirmação 🙏`;
 }
@@ -112,6 +122,8 @@ export function getProfessionalToClientMessage(
  * Gera link completo do WhatsApp com mensagem codificada
  */
 export function generateWhatsAppLink(phoneNumber: string, message: string): string {
-  const cleanNumber = phoneNumber.replace(/\D/g, '');
-  return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+  const normalized = normalizeMozWhatsapp(phoneNumber);
+  if (!normalized) return '#';
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }
+

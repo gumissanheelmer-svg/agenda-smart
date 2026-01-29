@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,7 +22,8 @@ import {
   PaymentMethod,
   ExtractedCode
 } from '@/lib/paymentCodeExtractor';
-import { getClientToBusinessMessage, generateWhatsAppLink } from '@/lib/whatsappTemplates';
+import { getClientToBusinessMessage } from '@/lib/whatsappTemplates';
+import { openWhatsApp } from '@/lib/whatsapp';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -150,13 +151,19 @@ export function PaymentStep({
 
   const formattedDate = format(appointmentDate, "dd 'de' MMMM", { locale: pt });
 
-  // WhatsApp link always uses the business's configured whatsapp_number
-  const whatsappLink = useMemo(() => {
-    if (!hasValidCode || !whatsappNumber) return '#';
-    
-    // Clean the WhatsApp number to ensure it's in correct format
-    const cleanWhatsappNumber = whatsappNumber.replace(/\D/g, '');
-    
+  const handleSendWhatsApp = () => {
+    if (!hasValidCode) return;
+
+    if (!whatsappNumber?.trim()) {
+      toast({
+        title: 'WhatsApp não configurado',
+        description: 'O negócio não tem um número de WhatsApp definido nas configurações.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const paymentMethodLabel = selectedMethod === 'mpesa' ? 'M-Pesa' : 'eMola';
     const message = getClientToBusinessMessage({
       clientName,
       professionalName,
@@ -165,11 +172,22 @@ export function PaymentStep({
       appointmentTime,
       price: servicePrice,
       businessName,
+      paymentMethod: paymentMethodLabel,
       transactionCode: manualCode.trim(),
     });
-    
-    return generateWhatsAppLink(cleanWhatsappNumber, message);
-  }, [hasValidCode, whatsappNumber, businessName, clientName, serviceName, professionalName, appointmentDate, appointmentTime, servicePrice, manualCode]);
+
+    const opened = openWhatsApp(whatsappNumber, message);
+    if (!opened) {
+      toast({
+        title: 'Número inválido',
+        description: 'Número do WhatsApp do negócio inválido. Peça ao dono para configurar corretamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    onComplete();
+  };
 
   return (
     <Card className="border-border/50 bg-card/90 backdrop-blur-md shadow-xl animate-fade-in">
@@ -213,23 +231,16 @@ export function PaymentStep({
               </div>
             </div>
 
-            <a
-              href={whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-              onClick={() => onComplete()}
+            <Button
+              variant="gold"
+              size="lg"
+              className="w-full"
+              onClick={handleSendWhatsApp}
             >
-              <Button
-                variant="gold"
-                size="lg"
-                className="w-full"
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Enviar confirmação no WhatsApp
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            </a>
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Enviar confirmação no WhatsApp
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
         ) : (
           <>
@@ -386,7 +397,7 @@ export function PaymentStep({
                     <p className="text-xs text-muted-foreground">
                       {validateManualCode(manualCode).isValid 
                         ? `✓ Código ${validateManualCode(manualCode).method === 'mpesa' ? 'M-Pesa' : 'eMola'} válido` 
-                        : 'Código inválido. M-Pesa: começa com DA (11 caracteres). eMola: começa com PP.'}
+                        : 'Código inválido. M-Pesa: 10–12 caracteres (letras/números). eMola: começa com PP ou CI.'}
                     </p>
                   )}
                 </div>
@@ -424,3 +435,4 @@ export function PaymentStep({
     </Card>
   );
 }
+
