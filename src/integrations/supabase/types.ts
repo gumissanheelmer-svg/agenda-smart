@@ -226,6 +226,7 @@ export type Database = {
           background_image_url: string | null
           background_overlay_level: string | null
           business_type: string
+          cleanup_buffer_minutes: number
           closing_time: string | null
           created_at: string
           emola_number: string | null
@@ -237,8 +238,10 @@ export type Database = {
           owner_email: string | null
           payment_methods_enabled: string[] | null
           payment_required: boolean
+          prep_buffer_minutes: number
           primary_color: string
           secondary_color: string
+          slot_interval_minutes: number
           slug: string
           text_color: string
           updated_at: string
@@ -251,6 +254,7 @@ export type Database = {
           background_image_url?: string | null
           background_overlay_level?: string | null
           business_type?: string
+          cleanup_buffer_minutes?: number
           closing_time?: string | null
           created_at?: string
           emola_number?: string | null
@@ -262,8 +266,10 @@ export type Database = {
           owner_email?: string | null
           payment_methods_enabled?: string[] | null
           payment_required?: boolean
+          prep_buffer_minutes?: number
           primary_color?: string
           secondary_color?: string
+          slot_interval_minutes?: number
           slug: string
           text_color?: string
           updated_at?: string
@@ -276,6 +282,7 @@ export type Database = {
           background_image_url?: string | null
           background_overlay_level?: string | null
           business_type?: string
+          cleanup_buffer_minutes?: number
           closing_time?: string | null
           created_at?: string
           emola_number?: string | null
@@ -287,8 +294,10 @@ export type Database = {
           owner_email?: string | null
           payment_methods_enabled?: string[] | null
           payment_required?: boolean
+          prep_buffer_minutes?: number
           primary_color?: string
           secondary_color?: string
+          slot_interval_minutes?: number
           slug?: string
           text_color?: string
           updated_at?: string
@@ -887,6 +896,7 @@ export type Database = {
           background_image_url: string
           background_overlay_level: string
           business_type: string
+          cleanup_buffer_minutes: number
           closing_time: string
           emola_number: string
           id: string
@@ -896,8 +906,10 @@ export type Database = {
           opening_time: string
           payment_methods_enabled: string[]
           payment_required: boolean
+          prep_buffer_minutes: number
           primary_color: string
           secondary_color: string
+          slot_interval_minutes: number
           slug: string
           text_color: string
           whatsapp_number: string

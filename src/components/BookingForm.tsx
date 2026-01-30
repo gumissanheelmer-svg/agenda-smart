@@ -251,9 +251,19 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
       return [];
     }
 
-    // Generate all possible slots based on business hours
-    const intervalMinutes = 30; // Fixed interval for now
-    const allSlots = generateBusinessTimeSlots(openingTime, closingTime, intervalMinutes);
+    // Get buffer and interval settings from business (with defaults)
+    const prepBuffer = barbershop?.prep_buffer_minutes ?? 0;
+    const cleanupBuffer = barbershop?.cleanup_buffer_minutes ?? 0;
+    const slotInterval = barbershop?.slot_interval_minutes ?? 30;
+
+    // Generate all possible slots based on business hours with buffers
+    const allSlots = generateBusinessTimeSlots(
+      openingTime, 
+      closingTime, 
+      slotInterval,
+      prepBuffer,
+      cleanupBuffer
+    );
 
     // Get service duration
     const selectedService = services.find(s => s.id === formData.serviceId);
@@ -265,8 +275,8 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
       duration: apt._duration || (apt.service_id ? services.find(s => s.id === apt.service_id)?.duration : 30) || 30
     }));
 
-    // Filter out occupied slots
-    return filterAvailableSlots(allSlots, appointmentsWithDuration, serviceDuration, closingTime);
+    // Filter out occupied slots (respecting service duration and cleanup buffer)
+    return filterAvailableSlots(allSlots, appointmentsWithDuration, serviceDuration, closingTime, cleanupBuffer);
   };
 
   const handleSubmit = async () => {

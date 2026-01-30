@@ -21,6 +21,9 @@ export interface Barbershop {
   payment_methods_enabled: string[];
   whatsapp_number: string | null;
   payment_required: boolean;
+  prep_buffer_minutes: number;
+  cleanup_buffer_minutes: number;
+  slot_interval_minutes: number;
 }
 
 interface BarbershopContextType {
@@ -72,6 +75,9 @@ export function BarbershopProvider({ children }: { children: ReactNode }) {
         payment_methods_enabled: barbershopData.payment_methods_enabled || [],
         whatsapp_number: barbershopData.whatsapp_number || null,
         payment_required: barbershopData.payment_required || false,
+        prep_buffer_minutes: barbershopData.prep_buffer_minutes ?? 0,
+        cleanup_buffer_minutes: barbershopData.cleanup_buffer_minutes ?? 0,
+        slot_interval_minutes: barbershopData.slot_interval_minutes ?? 30,
       } as Barbershop);
       setIsLoading(false);
       return true;

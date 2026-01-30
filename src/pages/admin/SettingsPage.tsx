@@ -30,6 +30,9 @@ interface BarbershopSettings {
   emola_number: string | null;
   payment_methods_enabled: string[];
   payment_required: boolean;
+  prep_buffer_minutes: number;
+  cleanup_buffer_minutes: number;
+  slot_interval_minutes: number;
 }
 
 const getBusinessLabels = (type: string) => {
@@ -134,6 +137,9 @@ export default function SettingsPage() {
         emola_number: settings.emola_number,
         payment_methods_enabled: settings.payment_methods_enabled,
         payment_required: settings.payment_required,
+        prep_buffer_minutes: settings.prep_buffer_minutes,
+        cleanup_buffer_minutes: settings.cleanup_buffer_minutes,
+        slot_interval_minutes: settings.slot_interval_minutes,
       })
       .eq('id', settings.id);
 
@@ -494,6 +500,76 @@ export default function SettingsPage() {
                   className="bg-input border-border w-full"
                 />
               </div>
+            </div>
+
+            {/* Scheduling Configuration */}
+            <div className="pt-4 border-t border-border/50 space-y-4">
+              <h4 className="text-sm font-medium text-foreground">Configurações de Agendamento</h4>
+              
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="slot_interval" className="text-xs sm:text-sm">Intervalo (min)</Label>
+                  <Select
+                    value={String(settings.slot_interval_minutes ?? 30)}
+                    onValueChange={(value) => setSettings({ ...settings, slot_interval_minutes: parseInt(value, 10) })}
+                  >
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 min</SelectItem>
+                      <SelectItem value="15">15 min</SelectItem>
+                      <SelectItem value="20">20 min</SelectItem>
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="60">60 min</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="prep_buffer" className="text-xs sm:text-sm">Buffer Início</Label>
+                  <Select
+                    value={String(settings.prep_buffer_minutes ?? 0)}
+                    onValueChange={(value) => setSettings({ ...settings, prep_buffer_minutes: parseInt(value, 10) })}
+                  >
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0 min</SelectItem>
+                      <SelectItem value="10">10 min</SelectItem>
+                      <SelectItem value="15">15 min</SelectItem>
+                      <SelectItem value="20">20 min</SelectItem>
+                      <SelectItem value="30">30 min</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cleanup_buffer" className="text-xs sm:text-sm">Buffer Fim</Label>
+                  <Select
+                    value={String(settings.cleanup_buffer_minutes ?? 0)}
+                    onValueChange={(value) => setSettings({ ...settings, cleanup_buffer_minutes: parseInt(value, 10) })}
+                  >
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0 min</SelectItem>
+                      <SelectItem value="15">15 min</SelectItem>
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="45">45 min</SelectItem>
+                      <SelectItem value="60">60 min</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                <strong>Intervalo:</strong> tempo entre horários disponíveis.<br/>
+                <strong>Buffer Início:</strong> margem após abertura sem agendamentos.<br/>
+                <strong>Buffer Fim:</strong> margem antes de fechar sem agendamentos.
+              </p>
             </div>
           </CardContent>
         </Card>

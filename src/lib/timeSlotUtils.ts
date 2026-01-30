@@ -1,16 +1,60 @@
 /**
- * Generates time slots based on opening and closing times.
- * Uses only minutes-of-day calculations to avoid timezone issues.
+ * Business hours configuration for time slot generation
+ */
+export interface BusinessHoursConfig {
+  openingTime: string | null | undefined;
+  closingTime: string | null | undefined;
+  prepBufferMinutes?: number;
+  cleanupBufferMinutes?: number;
+  slotIntervalMinutes?: number;
+}
+
+/**
+ * Parses a time string (HH:mm) to minutes of day
+ */
+function parseTimeToMinutes(time: string): number | null {
+  const parts = time.split(':');
+  if (parts.length < 2) return null;
+
+  const hours = parseInt(parts[0], 10);
+  const mins = parseInt(parts[1], 10);
+
+  if (
+    isNaN(hours) || isNaN(mins) ||
+    hours < 0 || hours > 23 ||
+    mins < 0 || mins > 59
+  ) {
+    return null;
+  }
+
+  return hours * 60 + mins;
+}
+
+/**
+ * Converts minutes of day to HH:mm string
+ */
+function minutesToTime(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Generates time slots based on business hours with buffer support.
  * 
- * @param openingTime - Opening time in "HH:mm" format
- * @param closingTime - Closing time in "HH:mm" format
- * @param intervalMinutes - Interval between slots (default 30)
- * @returns Array of time strings ["08:00", "08:30", ...]
+ * The schedulable window is:
+ * - Start: opening_time + prep_buffer_minutes
+ * - End: closing_time - cleanup_buffer_minutes
+ * 
+ * @param config - Business hours configuration
+ * @returns Array of time strings ["08:20", "08:30", ...]
  */
 export function generateBusinessTimeSlots(
   openingTime: string | null | undefined,
   closingTime: string | null | undefined,
-  intervalMinutes: number = 30
+  intervalMinutes: number = 30,
+  prepBufferMinutes: number = 0,
+  cleanupBufferMinutes: number = 0
 ): string[] {
   const slots: string[] = [];
 
@@ -19,49 +63,32 @@ export function generateBusinessTimeSlots(
     return slots;
   }
 
-  // Parse times safely
-  const openingParts = openingTime.split(':');
-  const closingParts = closingTime.split(':');
+  const openingMinutes = parseTimeToMinutes(openingTime);
+  const closingMinutes = parseTimeToMinutes(closingTime);
 
-  if (openingParts.length < 2 || closingParts.length < 2) {
+  if (openingMinutes === null || closingMinutes === null) {
     return slots;
   }
 
-  const openHour = parseInt(openingParts[0], 10);
-  const openMin = parseInt(openingParts[1], 10);
-  const closeHour = parseInt(closingParts[0], 10);
-  const closeMin = parseInt(closingParts[1], 10);
+  // Calculate schedulable window with buffers
+  const scheduleStart = openingMinutes + (prepBufferMinutes || 0);
+  const scheduleEnd = closingMinutes - (cleanupBufferMinutes || 0);
 
-  // Validate parsed values
-  if (
-    isNaN(openHour) || isNaN(openMin) ||
-    isNaN(closeHour) || isNaN(closeMin) ||
-    openHour < 0 || openHour > 23 ||
-    closeHour < 0 || closeHour > 23 ||
-    openMin < 0 || openMin > 59 ||
-    closeMin < 0 || closeMin > 59
-  ) {
+  // Validate window
+  if (scheduleStart >= scheduleEnd) {
     return slots;
   }
 
-  // Convert to minutes of day
-  const openingMinutes = openHour * 60 + openMin;
-  const closingMinutes = closeHour * 60 + closeMin;
+  // Ensure interval is valid
+  const interval = intervalMinutes > 0 ? intervalMinutes : 30;
 
-  // Opening must be before closing
-  if (openingMinutes >= closingMinutes) {
-    return slots;
-  }
+  // Round scheduleStart up to the next interval if needed
+  const roundedStart = Math.ceil(scheduleStart / interval) * interval;
 
-  // Last slot start must be at least intervalMinutes before closing
-  const lastSlotStart = closingMinutes - intervalMinutes;
-
-  // Generate slots
-  for (let currentMinutes = openingMinutes; currentMinutes <= lastSlotStart; currentMinutes += intervalMinutes) {
-    const hours = Math.floor(currentMinutes / 60);
-    const mins = currentMinutes % 60;
-    const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    slots.push(timeStr);
+  // Generate slots from roundedStart to scheduleEnd
+  // Last slot must START at or before scheduleEnd - we'll handle service duration later
+  for (let currentMinutes = roundedStart; currentMinutes <= scheduleEnd; currentMinutes += interval) {
+    slots.push(minutesToTime(currentMinutes));
   }
 
   return slots;
@@ -78,69 +105,56 @@ export function isBusinessHoursConfigured(
     return false;
   }
 
-  const openingParts = openingTime.split(':');
-  const closingParts = closingTime.split(':');
+  const openingMinutes = parseTimeToMinutes(openingTime);
+  const closingMinutes = parseTimeToMinutes(closingTime);
 
-  if (openingParts.length < 2 || closingParts.length < 2) {
+  if (openingMinutes === null || closingMinutes === null) {
     return false;
   }
-
-  const openHour = parseInt(openingParts[0], 10);
-  const openMin = parseInt(openingParts[1], 10);
-  const closeHour = parseInt(closingParts[0], 10);
-  const closeMin = parseInt(closingParts[1], 10);
-
-  if (
-    isNaN(openHour) || isNaN(openMin) ||
-    isNaN(closeHour) || isNaN(closeMin)
-  ) {
-    return false;
-  }
-
-  const openingMinutes = openHour * 60 + openMin;
-  const closingMinutes = closeHour * 60 + closeMin;
 
   return openingMinutes < closingMinutes;
 }
 
 /**
  * Filters out occupied time slots based on existing appointments
+ * and ensures the service fits within the schedulable window.
  * 
  * @param allSlots - All possible time slots
  * @param existingAppointments - Array of existing appointments with time and duration
  * @param serviceDuration - Duration of the service being booked
- * @param closingTime - Business closing time
+ * @param scheduleEndMinutes - End of the schedulable window (closing - cleanup buffer)
  * @returns Filtered array of available time slots
  */
 export function filterAvailableSlots(
   allSlots: string[],
   existingAppointments: Array<{ appointment_time: string; duration: number }>,
   serviceDuration: number,
-  closingTime: string | null | undefined
+  closingTime: string | null | undefined,
+  cleanupBufferMinutes: number = 0
 ): string[] {
   if (!closingTime) return allSlots;
 
-  const closeParts = closingTime.split(':');
-  if (closeParts.length < 2) return allSlots;
-  
-  const closeHour = parseInt(closeParts[0], 10);
-  const closeMin = parseInt(closeParts[1], 10);
-  const closingMinutes = closeHour * 60 + closeMin;
+  const closingMinutes = parseTimeToMinutes(closingTime);
+  if (closingMinutes === null) return allSlots;
+
+  // Calculate the schedulable end (closing - cleanup buffer)
+  const scheduleEndMinutes = closingMinutes - cleanupBufferMinutes;
 
   // Build occupied ranges
   const occupiedSlots: { start: number; end: number }[] = existingAppointments.map(apt => {
-    const [h, m] = apt.appointment_time.split(':').map(Number);
-    const startMinutes = h * 60 + m;
+    const startMinutes = parseTimeToMinutes(apt.appointment_time);
+    if (startMinutes === null) return { start: 0, end: 0 };
     return { start: startMinutes, end: startMinutes + apt.duration };
-  });
+  }).filter(slot => slot.start !== 0 || slot.end !== 0);
 
   return allSlots.filter(slot => {
-    const [h, m] = slot.split(':').map(Number);
-    const slotStart = h * 60 + m;
+    const slotStart = parseTimeToMinutes(slot);
+    if (slotStart === null) return false;
+
     const slotEnd = slotStart + serviceDuration;
 
-    // Check if slot ends after closing
-    if (slotEnd > closingMinutes) {
+    // Check if service would end after the schedulable window
+    if (slotEnd > scheduleEndMinutes) {
       return false;
     }
 
@@ -151,4 +165,31 @@ export function filterAvailableSlots(
 
     return !hasConflict;
   });
+}
+
+/**
+ * Calculates the schedulable window for a business
+ */
+export function getSchedulableWindow(
+  openingTime: string | null | undefined,
+  closingTime: string | null | undefined,
+  prepBufferMinutes: number = 0,
+  cleanupBufferMinutes: number = 0
+): { start: string; end: string } | null {
+  if (!openingTime || !closingTime) return null;
+
+  const openingMinutes = parseTimeToMinutes(openingTime);
+  const closingMinutes = parseTimeToMinutes(closingTime);
+
+  if (openingMinutes === null || closingMinutes === null) return null;
+
+  const scheduleStart = openingMinutes + prepBufferMinutes;
+  const scheduleEnd = closingMinutes - cleanupBufferMinutes;
+
+  if (scheduleStart >= scheduleEnd) return null;
+
+  return {
+    start: minutesToTime(scheduleStart),
+    end: minutesToTime(scheduleEnd)
+  };
 }
