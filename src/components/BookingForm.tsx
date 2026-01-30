@@ -16,6 +16,7 @@ import { useBusinessType } from '@/hooks/useBusinessType';
 import { ServiceGallery } from '@/components/ServiceGallery';
 import { PaymentStep } from '@/components/booking/PaymentStep';
 import { PaymentMethod } from '@/lib/paymentCodeExtractor';
+import { generateBusinessTimeSlots, isBusinessHoursConfigured, filterAvailableSlots } from '@/lib/timeSlotUtils';
 
 interface BookingFormProps {
   onBack: () => void;
@@ -241,56 +242,31 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
   };
 
   const generateTimeSlots = () => {
-    const slots: string[] = [];
-    const selectedProfessional = professionals.find(p => p.id === formData.barberId);
+    // Use business opening/closing times (NEVER hardcoded)
+    const openingTime = barbershop?.opening_time;
+    const closingTime = barbershop?.closing_time;
     
-    if (!selectedProfessional || !formData.appointmentDate) return slots;
+    // Validate business hours are configured
+    if (!isBusinessHoursConfigured(openingTime, closingTime)) {
+      return [];
+    }
 
-    const dayOfWeek = format(formData.appointmentDate, 'EEEE').toLowerCase() as keyof WorkingHours;
-    const dayHours = selectedProfessional.working_hours?.[dayOfWeek];
-    
-    if (!dayHours) return slots;
+    // Generate all possible slots based on business hours
+    const intervalMinutes = 30; // Fixed interval for now
+    const allSlots = generateBusinessTimeSlots(openingTime, closingTime, intervalMinutes);
 
-    const [startHour, startMin] = dayHours.start.split(':').map(Number);
-    const [endHour, endMin] = dayHours.end.split(':').map(Number);
-
+    // Get service duration
     const selectedService = services.find(s => s.id === formData.serviceId);
     const serviceDuration = selectedService?.duration || 30;
 
-    // Criar mapa de horários ocupados com suas durações
-    const occupiedSlots: { start: number; end: number }[] = [];
-    existingAppointments.forEach(apt => {
-      const [h, m] = apt.appointment_time.split(':').map(Number);
-      const startMinutes = h * 60 + m;
-      // Use duration from RPC if available, otherwise lookup from services
-      const aptDuration = apt._duration || (apt.service_id ? services.find(s => s.id === apt.service_id)?.duration : 30) || 30;
-      occupiedSlots.push({ start: startMinutes, end: startMinutes + aptDuration });
-    });
+    // Map existing appointments to the format expected by filterAvailableSlots
+    const appointmentsWithDuration = existingAppointments.map(apt => ({
+      appointment_time: apt.appointment_time,
+      duration: apt._duration || (apt.service_id ? services.find(s => s.id === apt.service_id)?.duration : 30) || 30
+    }));
 
-    for (let hour = startHour; hour <= endHour; hour++) {
-      for (let min = 0; min < 60; min += 30) {
-        if (hour === startHour && min < startMin) continue;
-        
-        const slotStartMinutes = hour * 60 + min;
-        const slotEndMinutes = slotStartMinutes + serviceDuration;
-        
-        // Verificar se o slot ultrapassa o horário de fechamento
-        const closeMinutes = endHour * 60 + endMin;
-        if (slotEndMinutes > closeMinutes) continue;
-
-        // Verificar se o slot colide com algum agendamento existente
-        const hasConflict = occupiedSlots.some(occupied => 
-          (slotStartMinutes < occupied.end && slotEndMinutes > occupied.start)
-        );
-
-        if (!hasConflict) {
-          const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-          slots.push(timeStr);
-        }
-      }
-    }
-
-    return slots;
+    // Filter out occupied slots
+    return filterAvailableSlots(allSlots, appointmentsWithDuration, serviceDuration, closingTime);
   };
 
   const handleSubmit = async () => {
@@ -681,7 +657,17 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
                     <Clock className="w-4 h-4" />
                     Horário disponível
                   </Label>
-                  {timeSlots.length === 0 ? (
+                  {!isBusinessHoursConfigured(barbershop?.opening_time, barbershop?.closing_time) ? (
+                    <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg text-center text-destructive">
+                      <AlertCircle className="w-5 h-5 mx-auto mb-2" />
+                      <p className="text-sm font-medium">
+                        Horários do negócio não configurados.
+                      </p>
+                      <p className="text-xs mt-1">
+                        Peça ao administrador para definir Abertura e Fechamento.
+                      </p>
+                    </div>
+                  ) : timeSlots.length === 0 ? (
                     <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground">
                       Nenhum horário disponível para esta data.
                       <br />
