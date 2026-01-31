@@ -14,6 +14,9 @@ export default function BarbershopHome() {
 
   useEffect(() => {
     if (slug) {
+      // Always fetch fresh data when the page loads
+      // This ensures settings changes are reflected immediately
+      console.log('[BarbershopHome] Loading business data for slug:', slug);
       setBarbershopBySlug(slug);
     }
   }, [slug]);

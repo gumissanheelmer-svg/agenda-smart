@@ -47,16 +47,19 @@ export function BarbershopProvider({ children }: { children: ReactNode }) {
 
     try {
       // Use secure RPC function that excludes owner_email
+      // Always fetch fresh data (no caching)
       const { data, error: fetchError } = await supabase
         .rpc('get_public_barbershop', { p_slug: slug });
 
       if (fetchError) {
+        console.error('[useBarbershop] RPC error:', fetchError);
         setError('Erro ao carregar barbearia');
         setIsLoading(false);
         return false;
       }
 
       if (!data || data.length === 0) {
+        console.warn('[useBarbershop] No barbershop found for slug:', slug);
         setError('Barbearia não encontrada');
         setIsLoading(false);
         return false;
@@ -64,6 +67,17 @@ export function BarbershopProvider({ children }: { children: ReactNode }) {
 
       // RPC returns an array, get first item
       const barbershopData = data[0];
+      
+      // Debug: Log the fetched business hours
+      console.log('[useBarbershop] Fetched business data:', {
+        slug,
+        opening_time: barbershopData.opening_time,
+        closing_time: barbershopData.closing_time,
+        prep_buffer_minutes: barbershopData.prep_buffer_minutes,
+        cleanup_buffer_minutes: barbershopData.cleanup_buffer_minutes,
+        slot_interval_minutes: barbershopData.slot_interval_minutes,
+      });
+      
       setBarbershop({
         ...barbershopData,
         active: true, // We only get active barbershops
@@ -82,6 +96,7 @@ export function BarbershopProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return true;
     } catch (err) {
+      console.error('[useBarbershop] Exception:', err);
       setError('Erro ao carregar barbearia');
       setIsLoading(false);
       return false;

@@ -246,8 +246,18 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
     const openingTime = barbershop?.opening_time;
     const closingTime = barbershop?.closing_time;
     
+    // Debug: Log the values being used
+    console.log('[TimeSlots] Business hours:', { 
+      openingTime, 
+      closingTime, 
+      prepBuffer: barbershop?.prep_buffer_minutes,
+      cleanupBuffer: barbershop?.cleanup_buffer_minutes,
+      slotInterval: barbershop?.slot_interval_minutes 
+    });
+    
     // Validate business hours are configured
     if (!isBusinessHoursConfigured(openingTime, closingTime)) {
+      console.warn('[TimeSlots] Business hours not configured');
       return [];
     }
 
@@ -265,6 +275,8 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
       cleanupBuffer
     );
 
+    console.log('[TimeSlots] Generated slots:', allSlots.length, 'First:', allSlots[0], 'Last:', allSlots[allSlots.length - 1]);
+
     // Get service duration
     const selectedService = services.find(s => s.id === formData.serviceId);
     const serviceDuration = selectedService?.duration || 30;
@@ -276,7 +288,10 @@ export function BookingForm({ onBack, barbershopId, backgroundImageUrl, backgrou
     }));
 
     // Filter out occupied slots (respecting service duration and cleanup buffer)
-    return filterAvailableSlots(allSlots, appointmentsWithDuration, serviceDuration, closingTime, cleanupBuffer);
+    const availableSlots = filterAvailableSlots(allSlots, appointmentsWithDuration, serviceDuration, closingTime, cleanupBuffer);
+    console.log('[TimeSlots] Available after filtering:', availableSlots.length);
+    
+    return availableSlots;
   };
 
   const handleSubmit = async () => {
