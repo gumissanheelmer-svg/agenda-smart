@@ -7,10 +7,12 @@ import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, LayoutDashboard, Building2, CreditCard, LogOut, RefreshCw } from 'lucide-react';
+import { Shield, LayoutDashboard, Building2, CreditCard, LogOut, RefreshCw, Users, DollarSign } from 'lucide-react';
 import { DashboardTab } from '@/components/superadmin/DashboardTab';
 import { BusinessesTab } from '@/components/superadmin/BusinessesTab';
 import { SubscriptionsTab } from '@/components/superadmin/SubscriptionsTab';
+import { AffiliatesTab } from '@/components/superadmin/AffiliatesTab';
+import { AffiliateSalesTab } from '@/components/superadmin/AffiliateSalesTab';
 
 interface Barbershop {
   id: string;
@@ -38,6 +40,29 @@ interface Subscription {
   created_at: string;
 }
 
+interface Affiliate {
+  id: string;
+  name: string;
+  phone: string | null;
+  commission_fixed: number;
+  active: boolean;
+  created_at: string;
+  salesCount?: number;
+  totalCommission?: number;
+}
+
+interface AffiliateSale {
+  id: string;
+  affiliate_id: string;
+  affiliate_name?: string;
+  business_id: string;
+  business_name?: string;
+  sale_value: number;
+  commission_value: number;
+  platform_profit: number;
+  created_at: string;
+}
+
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const { user, isSuperAdmin, isLoading, signOut } = useAuth();
@@ -45,9 +70,14 @@ export default function SuperAdminDashboard() {
   
   const [barbershops, setBarbershops] = useState<Barbershop[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [affiliateSales, setAffiliateSales] = useState<AffiliateSale[]>([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, blocked: 0, rejected: 0, inactive: 0 });
   const [subscriptionStats, setSubscriptionStats] = useState({ totalRevenue: 0, paidCount: 0, pendingCount: 0, overdueCount: 0 });
+  const [affiliateStats, setAffiliateStats] = useState({ totalSales: 0, totalCommissions: 0, platformProfit: 0, salesCount: 0 });
   const [monthlyData, setMonthlyData] = useState<Array<{ month: string; empresas: number; receita: number }>>([]);
+  const [affiliateMonthlyData, setAffiliateMonthlyData] = useState<Array<{ month: string; vendas: number; comissoes: number; lucro: number }>>([]);
+  const [affiliatePerformance, setAffiliatePerformance] = useState<Array<{ name: string; sales: number }>>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [selectedBarbershop, setSelectedBarbershop] = useState<Barbershop | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -83,11 +113,44 @@ export default function SuperAdminDashboard() {
 
       if (subscriptionsError) throw subscriptionsError;
 
+      // Fetch affiliates
+      const { data: affiliatesData, error: affiliatesError } = await supabase
+        .from('affiliates_agenda')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (affiliatesError) throw affiliatesError;
+
+      // Fetch affiliate sales
+      const { data: salesData, error: salesError } = await supabase
+        .from('affiliate_sales_agenda')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (salesError) throw salesError;
+
       // Map subscriptions with barbershop names
       const subsWithNames = (subscriptionsData || []).map(sub => ({
         ...sub,
         barbershop_name: barbershopsData?.find(b => b.id === sub.barbershop_id)?.name || 'Desconhecido'
       }));
+
+      // Map sales with affiliate and business names
+      const salesWithNames = (salesData || []).map(sale => ({
+        ...sale,
+        affiliate_name: affiliatesData?.find(a => a.id === sale.affiliate_id)?.name || 'Desconhecido',
+        business_name: barbershopsData?.find(b => b.id === sale.business_id)?.name || 'Desconhecido'
+      }));
+
+      // Calculate affiliate stats per affiliate
+      const affiliatesWithStats = (affiliatesData || []).map(affiliate => {
+        const affiliateSales = salesWithNames.filter(s => s.affiliate_id === affiliate.id);
+        return {
+          ...affiliate,
+          salesCount: affiliateSales.length,
+          totalCommission: affiliateSales.reduce((sum, s) => sum + Number(s.commission_value), 0)
+        };
+      });
 
       // Get last subscription for each barbershop
       const barbershopsWithSubs = (barbershopsData || []).map(b => {
@@ -97,6 +160,8 @@ export default function SuperAdminDashboard() {
 
       setBarbershops(barbershopsWithSubs);
       setSubscriptions(subsWithNames);
+      setAffiliates(affiliatesWithStats);
+      setAffiliateSales(salesWithNames);
       
       // Calculate stats
       setStats({
@@ -117,12 +182,41 @@ export default function SuperAdminDashboard() {
         overdueCount: subscriptionsData?.filter(s => s.status === 'overdue').length || 0,
       });
 
+      // Calculate affiliate stats
+      const allSales = salesData || [];
+      setAffiliateStats({
+        totalSales: allSales.reduce((sum, s) => sum + Number(s.sale_value), 0),
+        totalCommissions: allSales.reduce((sum, s) => sum + Number(s.commission_value), 0),
+        platformProfit: allSales.reduce((sum, s) => sum + Number(s.platform_profit), 0),
+        salesCount: allSales.length,
+      });
+
+      // Calculate affiliate performance for chart
+      const perfData = affiliatesWithStats
+        .filter(a => a.salesCount && a.salesCount > 0)
+        .map(a => ({ name: a.name, sales: a.salesCount || 0 }))
+        .sort((a, b) => b.sales - a.sales)
+        .slice(0, 10);
+      setAffiliatePerformance(perfData);
+
       // Generate monthly data (last 6 months)
       const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
       setMonthlyData(months.map((month, i) => ({
         month,
         empresas: Math.floor(Math.random() * 5) + (barbershopsData?.length || 0) / 6,
         receita: paidSubs.reduce((acc, s) => acc + Number(s.amount), 0) / 6 * (i + 1) / 3,
+      })));
+
+      // Generate affiliate monthly data (simulate for now)
+      const totalSalesValue = allSales.reduce((sum, s) => sum + Number(s.sale_value), 0);
+      const totalCommValue = allSales.reduce((sum, s) => sum + Number(s.commission_value), 0);
+      const totalProfitValue = allSales.reduce((sum, s) => sum + Number(s.platform_profit), 0);
+      
+      setAffiliateMonthlyData(months.map((month, i) => ({
+        month,
+        vendas: Math.round((totalSalesValue / 6) * ((i + 1) / 3.5)),
+        comissoes: Math.round((totalCommValue / 6) * ((i + 1) / 3.5)),
+        lucro: Math.round((totalProfitValue / 6) * ((i + 1) / 3.5)),
       })));
 
     } catch (error) {
@@ -158,6 +252,31 @@ export default function SuperAdminDashboard() {
       .from('subscriptions')
       .update({ status: 'paid', paid_at: new Date().toISOString(), payment_method })
       .eq('id', id);
+    if (error) throw error;
+    fetchAllData();
+  };
+
+  // Affiliate handlers
+  const handleCreateAffiliate = async (data: { name: string; phone?: string; commission_fixed: number }) => {
+    const { error } = await supabase.from('affiliates_agenda').insert([data]);
+    if (error) throw error;
+    fetchAllData();
+  };
+
+  const handleUpdateAffiliate = async (id: string, data: { name?: string; phone?: string; commission_fixed?: number; active?: boolean }) => {
+    const { error } = await supabase.from('affiliates_agenda').update(data).eq('id', id);
+    if (error) throw error;
+    fetchAllData();
+  };
+
+  const handleDeleteAffiliate = async (id: string) => {
+    const { error } = await supabase.from('affiliates_agenda').delete().eq('id', id);
+    if (error) throw error;
+    fetchAllData();
+  };
+
+  const handleCreateAffiliateSale = async (data: { affiliate_id: string; business_id: string; sale_value: number; commission_value: number }) => {
+    const { error } = await supabase.from('affiliate_sales_agenda').insert([data]);
     if (error) throw error;
     fetchAllData();
   };
@@ -213,18 +332,26 @@ export default function SuperAdminDashboard() {
 
         <main className="container mx-auto px-4 py-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsList className="grid w-full max-w-2xl grid-cols-5">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4" />
-                Dashboard
+                <span className="hidden sm:inline">Dashboard</span>
               </TabsTrigger>
               <TabsTrigger value="businesses" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                Empresas
+                <span className="hidden sm:inline">Empresas</span>
               </TabsTrigger>
               <TabsTrigger value="subscriptions" className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
-                Mensalidades
+                <span className="hidden sm:inline">Mensalidades</span>
+              </TabsTrigger>
+              <TabsTrigger value="affiliates" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Afiliados</span>
+              </TabsTrigger>
+              <TabsTrigger value="affiliate-sales" className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                <span className="hidden sm:inline">Vendas</span>
               </TabsTrigger>
             </TabsList>
 
@@ -248,6 +375,27 @@ export default function SuperAdminDashboard() {
                 onMarkAsPaid={handleMarkAsPaid}
                 selectedBarbershop={selectedBarbershop}
                 onClearSelection={() => setSelectedBarbershop(null)}
+              />
+            </TabsContent>
+
+            <TabsContent value="affiliates">
+              <AffiliatesTab
+                affiliates={affiliates}
+                onCreateAffiliate={handleCreateAffiliate}
+                onUpdateAffiliate={handleUpdateAffiliate}
+                onDeleteAffiliate={handleDeleteAffiliate}
+              />
+            </TabsContent>
+
+            <TabsContent value="affiliate-sales">
+              <AffiliateSalesTab
+                affiliates={affiliates}
+                businesses={barbershops.map(b => ({ id: b.id, name: b.name }))}
+                sales={affiliateSales}
+                stats={affiliateStats}
+                monthlyData={affiliateMonthlyData}
+                affiliatePerformance={affiliatePerformance}
+                onCreateSale={handleCreateAffiliateSale}
               />
             </TabsContent>
           </Tabs>

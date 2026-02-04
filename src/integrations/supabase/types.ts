@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_sales_agenda: {
+        Row: {
+          affiliate_id: string
+          business_id: string
+          commission_value: number
+          created_at: string
+          id: string
+          platform_profit: number | null
+          sale_value: number
+        }
+        Insert: {
+          affiliate_id: string
+          business_id: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          platform_profit?: number | null
+          sale_value?: number
+        }
+        Update: {
+          affiliate_id?: string
+          business_id?: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          platform_profit?: number | null
+          sale_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_sales_agenda_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates_agenda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_sales_agenda_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates_agenda: {
+        Row: {
+          active: boolean
+          commission_fixed: number
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          commission_fixed?: number
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          commission_fixed?: number
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_date: string
