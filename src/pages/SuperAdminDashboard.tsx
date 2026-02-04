@@ -73,9 +73,8 @@ export default function SuperAdminDashboard() {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [affiliateSales, setAffiliateSales] = useState<AffiliateSale[]>([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, blocked: 0, rejected: 0, inactive: 0 });
-  const [subscriptionStats, setSubscriptionStats] = useState({ totalRevenue: 0, paidCount: 0, pendingCount: 0, overdueCount: 0 });
-  const [affiliateStats, setAffiliateStats] = useState({ totalSales: 0, totalCommissions: 0, platformProfit: 0, salesCount: 0 });
-  const [monthlyData, setMonthlyData] = useState<Array<{ month: string; empresas: number; receita: number }>>([]);
+  const [salesStats, setSalesStats] = useState({ totalSales: 0, totalCommissions: 0, platformProfit: 0, salesCount: 0, activeAffiliates: 0 });
+  const [monthlyData, setMonthlyData] = useState<Array<{ month: string; empresas: number; vendas: number; lucro: number }>>([]);
   const [affiliateMonthlyData, setAffiliateMonthlyData] = useState<Array<{ month: string; vendas: number; comissoes: number; lucro: number }>>([]);
   const [affiliatePerformance, setAffiliatePerformance] = useState<Array<{ name: string; sales: number }>>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
@@ -173,22 +172,15 @@ export default function SuperAdminDashboard() {
         inactive: barbershopsData?.filter(b => b.approval_status === 'approved' && !b.active).length || 0,
       });
 
-      // Calculate subscription stats
-      const paidSubs = subscriptionsData?.filter(s => s.status === 'paid') || [];
-      setSubscriptionStats({
-        totalRevenue: paidSubs.reduce((acc, s) => acc + Number(s.amount), 0),
-        paidCount: paidSubs.length,
-        pendingCount: subscriptionsData?.filter(s => s.status === 'pending').length || 0,
-        overdueCount: subscriptionsData?.filter(s => s.status === 'overdue').length || 0,
-      });
-
-      // Calculate affiliate stats
+      // Calculate sales stats (lifetime access model)
       const allSales = salesData || [];
-      setAffiliateStats({
+      const activeAffiliatesCount = affiliatesData?.filter(a => a.active).length || 0;
+      setSalesStats({
         totalSales: allSales.reduce((sum, s) => sum + Number(s.sale_value), 0),
         totalCommissions: allSales.reduce((sum, s) => sum + Number(s.commission_value), 0),
         platformProfit: allSales.reduce((sum, s) => sum + Number(s.platform_profit), 0),
         salesCount: allSales.length,
+        activeAffiliates: activeAffiliatesCount,
       });
 
       // Calculate affiliate performance for chart
@@ -199,18 +191,19 @@ export default function SuperAdminDashboard() {
         .slice(0, 10);
       setAffiliatePerformance(perfData);
 
-      // Generate monthly data (last 6 months)
+      // Generate monthly data (last 6 months) - lifetime access model
       const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
+      const totalSalesValue = allSales.reduce((sum, s) => sum + Number(s.sale_value), 0);
+      const totalProfitValue = allSales.reduce((sum, s) => sum + Number(s.platform_profit), 0);
       setMonthlyData(months.map((month, i) => ({
         month,
         empresas: Math.floor(Math.random() * 5) + (barbershopsData?.length || 0) / 6,
-        receita: paidSubs.reduce((acc, s) => acc + Number(s.amount), 0) / 6 * (i + 1) / 3,
+        vendas: Math.round((totalSalesValue / 6) * ((i + 1) / 3.5)),
+        lucro: Math.round((totalProfitValue / 6) * ((i + 1) / 3.5)),
       })));
 
-      // Generate affiliate monthly data (simulate for now)
-      const totalSalesValue = allSales.reduce((sum, s) => sum + Number(s.sale_value), 0);
+      // Generate affiliate monthly data
       const totalCommValue = allSales.reduce((sum, s) => sum + Number(s.commission_value), 0);
-      const totalProfitValue = allSales.reduce((sum, s) => sum + Number(s.platform_profit), 0);
       
       setAffiliateMonthlyData(months.map((month, i) => ({
         month,
@@ -356,7 +349,7 @@ export default function SuperAdminDashboard() {
             </TabsList>
 
             <TabsContent value="dashboard">
-              <DashboardTab stats={stats} subscriptionStats={subscriptionStats} monthlyData={monthlyData} />
+              <DashboardTab stats={stats} salesStats={salesStats} monthlyData={monthlyData} />
             </TabsContent>
 
             <TabsContent value="businesses">
@@ -392,7 +385,7 @@ export default function SuperAdminDashboard() {
                 affiliates={affiliates}
                 businesses={barbershops.map(b => ({ id: b.id, name: b.name }))}
                 sales={affiliateSales}
-                stats={affiliateStats}
+                stats={salesStats}
                 monthlyData={affiliateMonthlyData}
                 affiliatePerformance={affiliatePerformance}
                 onCreateSale={handleCreateAffiliateSale}

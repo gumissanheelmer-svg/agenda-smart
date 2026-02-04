@@ -26,17 +26,18 @@ interface Stats {
   inactive: number;
 }
 
-interface SubscriptionStats {
-  totalRevenue: number;
-  paidCount: number;
-  pendingCount: number;
-  overdueCount: number;
+interface SalesStats {
+  totalSales: number;
+  totalCommissions: number;
+  platformProfit: number;
+  salesCount: number;
+  activeAffiliates: number;
 }
 
 interface DashboardTabProps {
   stats: Stats;
-  subscriptionStats: SubscriptionStats;
-  monthlyData: Array<{ month: string; empresas: number; receita: number }>;
+  salesStats: SalesStats;
+  monthlyData: Array<{ month: string; empresas: number; vendas: number; lucro: number }>;
 }
 
 const COLORS = {
@@ -62,7 +63,7 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-export function DashboardTab({ stats, subscriptionStats, monthlyData }: DashboardTabProps) {
+export function DashboardTab({ stats, salesStats, monthlyData }: DashboardTabProps) {
   const pieData = [
     { name: "Aprovadas", value: stats.approved, color: COLORS.approved },
     { name: "Pendentes", value: stats.pending, color: COLORS.pending },
@@ -101,32 +102,32 @@ export function DashboardTab({ stats, subscriptionStats, monthlyData }: Dashboar
       iconColor: "text-red-500",
     },
     {
-      title: "Receita Mensal",
-      value: `${subscriptionStats.totalRevenue.toLocaleString("pt-BR")} MT`,
-      icon: DollarSign,
-      gradient: "from-emerald-500/20 to-emerald-500/5",
-      iconColor: "text-emerald-500",
-    },
-    {
-      title: "Mensalidades Pagas",
-      value: subscriptionStats.paidCount,
+      title: "Vendas Vitalícias",
+      value: salesStats.salesCount,
       icon: TrendingUp,
       gradient: "from-blue-500/20 to-blue-500/5",
       iconColor: "text-blue-500",
     },
     {
-      title: "Mensalidades Pendentes",
-      value: subscriptionStats.pendingCount,
-      icon: AlertTriangle,
-      gradient: "from-orange-500/20 to-orange-500/5",
-      iconColor: "text-orange-500",
+      title: "Total de Vendas",
+      value: `${salesStats.totalSales.toLocaleString("pt-BR")} MT`,
+      icon: DollarSign,
+      gradient: "from-emerald-500/20 to-emerald-500/5",
+      iconColor: "text-emerald-500",
     },
     {
-      title: "Em Atraso",
-      value: subscriptionStats.overdueCount,
-      icon: XCircle,
-      gradient: "from-rose-500/20 to-rose-500/5",
-      iconColor: "text-rose-500",
+      title: "Lucro da Plataforma",
+      value: `${salesStats.platformProfit.toLocaleString("pt-BR")} MT`,
+      icon: TrendingUp,
+      gradient: "from-green-500/20 to-green-500/5",
+      iconColor: "text-green-600",
+    },
+    {
+      title: "Afiliados Ativos",
+      value: salesStats.activeAffiliates,
+      icon: CheckCircle,
+      gradient: "from-cyan-500/20 to-cyan-500/5",
+      iconColor: "text-cyan-500",
     },
   ];
 
@@ -252,18 +253,22 @@ export function DashboardTab({ stats, subscriptionStats, monthlyData }: Dashboar
         </motion.div>
       </div>
 
-      {/* Bar Chart - Revenue */}
+      {/* Bar Chart - Sales & Profit */}
       <motion.div variants={item}>
         <Card className="border-border/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium">Receita de Mensalidades por Mês</CardTitle>
+            <CardTitle className="text-lg font-medium">Vendas e Lucro por Mês</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData}>
                   <defs>
-                    <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(200, 80%, 50%)" stopOpacity={1} />
+                      <stop offset="95%" stopColor="hsl(200, 80%, 50%)" stopOpacity={0.6} />
+                    </linearGradient>
+                    <linearGradient id="colorLucro" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(142, 76%, 36%)" stopOpacity={1} />
                       <stop offset="95%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.6} />
                     </linearGradient>
@@ -278,13 +283,24 @@ export function DashboardTab({ stats, subscriptionStats, monthlyData }: Dashboar
                       borderRadius: "8px",
                       color: "hsl(43, 31%, 94%)",
                     }}
-                    formatter={(value: number) => [`${value.toLocaleString("pt-BR")} MT`, "Receita"]}
+                    formatter={(value: number) => [`${value.toLocaleString("pt-BR")} MT`]}
+                  />
+                  <Legend
+                    formatter={(value) => (
+                      <span style={{ color: "hsl(43, 31%, 94%)" }}>{value}</span>
+                    )}
                   />
                   <Bar
-                    dataKey="receita"
-                    fill="url(#colorReceita)"
+                    dataKey="vendas"
+                    fill="url(#colorVendas)"
                     radius={[4, 4, 0, 0]}
-                    name="Receita"
+                    name="Vendas"
+                  />
+                  <Bar
+                    dataKey="lucro"
+                    fill="url(#colorLucro)"
+                    radius={[4, 4, 0, 0]}
+                    name="Lucro"
                   />
                 </BarChart>
               </ResponsiveContainer>
