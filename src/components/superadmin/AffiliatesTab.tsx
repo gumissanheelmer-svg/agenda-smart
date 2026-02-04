@@ -198,58 +198,10 @@ export function AffiliatesTab({ affiliates, onCreateAffiliate, onUpdateAffiliate
               <CardDescription>Gerencie os afiliados de agendamentos</CardDescription>
             </div>
             
-            <Dialog open={isCreating} onOpenChange={setIsCreating}>
-              <DialogTrigger asChild>
-                <Button onClick={() => { resetForm(); setIsCreating(true); }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Afiliado
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Novo Afiliado</DialogTitle>
-                  <DialogDescription>Adicione um novo afiliado para vendas de agendamentos</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Nome do afiliado"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+258 84 000 0000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="commission">Comissão Fixa (MT)</Label>
-                    <Input
-                      id="commission"
-                      type="number"
-                      min="0"
-                      step="100"
-                      value={formData.commission_fixed}
-                      onChange={(e) => setFormData({ ...formData, commission_fixed: Number(e.target.value) })}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreating(false)}>Cancelar</Button>
-                  <Button onClick={handleCreate} disabled={isLoading}>
-                    {isLoading ? 'Criando...' : 'Criar Afiliado'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button onClick={() => { resetForm(); setIsCreating(true); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Afiliado
+            </Button>
           </CardHeader>
 
           <CardContent>
@@ -326,6 +278,54 @@ export function AffiliatesTab({ affiliates, onCreateAffiliate, onUpdateAffiliate
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Create Dialog */}
+      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Afiliado</DialogTitle>
+            <DialogDescription>Adicione um novo afiliado para vendas de agendamentos</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nome do afiliado"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telefone</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+258 84 000 0000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commission">Comissão Fixa (MT)</Label>
+              <Input
+                id="commission"
+                type="number"
+                min="0"
+                step="100"
+                value={formData.commission_fixed}
+                onChange={(e) => setFormData({ ...formData, commission_fixed: Number(e.target.value) })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreating(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={isLoading}>
+              {isLoading ? 'Criando...' : 'Criar Afiliado'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditing !== null} onOpenChange={(open) => !open && setIsEditing(null)}>
