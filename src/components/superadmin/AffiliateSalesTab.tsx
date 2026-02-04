@@ -57,6 +57,7 @@ interface AffiliateSalesTabProps {
     totalCommissions: number;
     platformProfit: number;
     salesCount: number;
+    activeAffiliates?: number;
   };
   monthlyData: Array<{
     month: string;
