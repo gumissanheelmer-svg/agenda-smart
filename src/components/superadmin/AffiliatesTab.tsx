@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { Plus, Users, Phone, DollarSign, Edit2, Trash2 } from "lucide-react";
+import { Plus, Users, Phone, DollarSign, Edit2, Trash2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Affiliate {
@@ -144,9 +144,9 @@ export function AffiliatesTab({ affiliates, onCreateAffiliate, onUpdateAffiliate
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <motion.div variants={item}>
-          <Card className="border-border/50 bg-gradient-to-br from-primary/20 to-primary/5">
-            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80" />
-            <CardContent className="relative p-4">
+          <Card className="border-border/50 bg-gradient-to-br from-primary/20 to-primary/5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80 pointer-events-none" />
+            <CardContent className="relative z-10 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Total de Afiliados</p>
@@ -159,9 +159,9 @@ export function AffiliatesTab({ affiliates, onCreateAffiliate, onUpdateAffiliate
         </motion.div>
 
         <motion.div variants={item}>
-          <Card className="border-border/50 bg-gradient-to-br from-green-500/20 to-green-500/5">
-            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80" />
-            <CardContent className="relative p-4">
+          <Card className="border-border/50 bg-gradient-to-br from-green-500/20 to-green-500/5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80 pointer-events-none" />
+            <CardContent className="relative z-10 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Afiliados Ativos</p>
@@ -174,9 +174,9 @@ export function AffiliatesTab({ affiliates, onCreateAffiliate, onUpdateAffiliate
         </motion.div>
 
         <motion.div variants={item}>
-          <Card className="border-border/50 bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
-            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80" />
-            <CardContent className="relative p-4">
+          <Card className="border-border/50 bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80 pointer-events-none" />
+            <CardContent className="relative z-10 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Total em Comissões</p>
@@ -192,14 +192,22 @@ export function AffiliatesTab({ affiliates, onCreateAffiliate, onUpdateAffiliate
       {/* Affiliates Table */}
       <motion.div variants={item}>
         <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-20">
             <div>
               <CardTitle className="text-lg font-medium">Afiliados</CardTitle>
               <CardDescription>Gerencie os afiliados de agendamentos</CardDescription>
             </div>
             
-            <Button onClick={() => { resetForm(); setIsCreating(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button 
+              onClick={() => { 
+                console.log('Novo Afiliado clicked');
+                resetForm(); 
+                setIsCreating(true); 
+              }}
+              className="cursor-pointer relative z-30"
+              type="button"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
               Novo Afiliado
             </Button>
           </CardHeader>
