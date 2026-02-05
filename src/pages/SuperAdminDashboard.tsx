@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, LayoutDashboard, Building2, CreditCard, LogOut, RefreshCw, Users, DollarSign } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { DashboardTab } from '@/components/superadmin/DashboardTab';
 import { BusinessesTab } from '@/components/superadmin/BusinessesTab';
 import { SubscriptionsTab } from '@/components/superadmin/SubscriptionsTab';
@@ -335,8 +336,8 @@ export default function SuperAdminDashboard() {
                 <span className="hidden sm:inline">Empresas</span>
               </TabsTrigger>
               <TabsTrigger value="subscriptions" className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                <span className="hidden sm:inline">Mensalidades</span>
+                <Zap className="h-4 w-4" />
+                <span className="hidden sm:inline">Ativações</span>
               </TabsTrigger>
               <TabsTrigger value="affiliates" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />

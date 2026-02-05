@@ -25,7 +25,7 @@ import {
   PowerOff,
   Search,
   ExternalLink,
-  CreditCard
+  Zap
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -97,15 +97,15 @@ export function BusinessesTab({ barbershops, onStatusChange, onViewSubscriptions
 
   const getSubscriptionBadge = (lastSubscription: Barbershop["lastSubscription"]) => {
     if (!lastSubscription) {
-      return <Badge variant="outline" className="text-muted-foreground text-xs">Sem mensalidade</Badge>;
+      return null;
     }
     switch (lastSubscription.status) {
       case "paid":
-        return <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Pago</Badge>;
+        return <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Ativada</Badge>;
       case "pending":
-        return <Badge variant="default" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">Pendente</Badge>;
+        return <Badge variant="default" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">Ativação Pendente</Badge>;
       case "overdue":
-        return <Badge variant="default" className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">Em Atraso</Badge>;
+        return <Badge variant="default" className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">Bloqueada</Badge>;
       default:
         return <Badge variant="secondary" className="text-xs">{lastSubscription.status}</Badge>;
     }
@@ -277,10 +277,12 @@ export function BusinessesTab({ barbershops, onStatusChange, onViewSubscriptions
                         <Calendar className="h-3 w-3" />
                         {format(new Date(barbershop.created_at), "dd MMM yyyy", { locale: ptBR })}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <CreditCard className="h-3 w-3" />
-                        {getSubscriptionBadge(barbershop.lastSubscription)}
-                      </span>
+                      {barbershop.lastSubscription && (
+                        <span className="flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          {getSubscriptionBadge(barbershop.lastSubscription)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -313,8 +315,8 @@ export function BusinessesTab({ barbershops, onStatusChange, onViewSubscriptions
                       size="sm"
                       onClick={() => onViewSubscriptions(barbershop)}
                     >
-                      <CreditCard className="h-4 w-4 mr-1" />
-                      Mensalidades
+                      <Zap className="h-4 w-4 mr-1" />
+                      Ativações
                     </Button>
                     <Button
                       variant="ghost"

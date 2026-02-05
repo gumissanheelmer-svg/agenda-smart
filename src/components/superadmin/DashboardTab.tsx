@@ -65,8 +65,8 @@ const item = {
 
 export function DashboardTab({ stats, salesStats, monthlyData }: DashboardTabProps) {
   const pieData = [
-    { name: "Aprovadas", value: stats.approved, color: COLORS.approved },
-    { name: "Pendentes", value: stats.pending, color: COLORS.pending },
+    { name: "Ativadas", value: stats.approved, color: COLORS.approved },
+    { name: "Ativação Pendente", value: stats.pending, color: COLORS.pending },
     { name: "Bloqueadas", value: stats.blocked, color: COLORS.blocked },
     { name: "Rejeitadas", value: stats.rejected, color: COLORS.rejected },
     { name: "Inativas", value: stats.inactive, color: COLORS.inactive },
@@ -81,14 +81,14 @@ export function DashboardTab({ stats, salesStats, monthlyData }: DashboardTabPro
       iconColor: "text-primary",
     },
     {
-      title: "Ativas",
+      title: "Ativadas",
       value: stats.approved,
       icon: CheckCircle,
       gradient: "from-green-500/20 to-green-500/5",
       iconColor: "text-green-500",
     },
     {
-      title: "Pendentes",
+      title: "Ativação Pendente",
       value: stats.pending,
       icon: Clock,
       gradient: "from-yellow-500/20 to-yellow-500/5",

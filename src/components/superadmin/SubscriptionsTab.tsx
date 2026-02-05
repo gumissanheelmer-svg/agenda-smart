@@ -27,7 +27,8 @@ import {
   Search,
   Plus,
   CheckCircle,
-  DollarSign
+  DollarSign,
+  Zap
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -113,11 +114,11 @@ export function SubscriptionsTab({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Pago</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Ativada</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Pendente</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Ativação Pendente</Badge>;
       case "overdue":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Em Atraso</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Bloqueada</Badge>;
       case "cancelled":
         return <Badge className="bg-muted text-muted-foreground">Cancelado</Badge>;
       default:
@@ -154,12 +155,12 @@ export function SubscriptionsTab({
       });
       toast({
         title: "Sucesso",
-        description: "Mensalidade criada com sucesso",
+        description: "Ativação registrada com sucesso",
       });
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao criar mensalidade",
+        description: "Erro ao registrar ativação",
         variant: "destructive",
       });
     } finally {
@@ -184,12 +185,12 @@ export function SubscriptionsTab({
       setPaymentMethod("");
       toast({
         title: "Sucesso",
-        description: "Mensalidade marcada como paga",
+        description: "Ativação confirmada com sucesso",
       });
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao marcar como paga",
+        description: "Erro ao confirmar ativação",
         variant: "destructive",
       });
     } finally {
@@ -221,9 +222,9 @@ export function SubscriptionsTab({
 
   const filterButtons: { label: string; value: FilterStatus; count: number }[] = [
     { label: "Todas", value: "all", count: subscriptions.length },
-    { label: "Pagas", value: "paid", count: subscriptions.filter(s => s.status === "paid").length },
+    { label: "Ativadas", value: "paid", count: subscriptions.filter(s => s.status === "paid").length },
     { label: "Pendentes", value: "pending", count: subscriptions.filter(s => s.status === "pending").length },
-    { label: "Em Atraso", value: "overdue", count: subscriptions.filter(s => s.status === "overdue").length },
+    { label: "Bloqueadas", value: "overdue", count: subscriptions.filter(s => s.status === "overdue").length },
   ];
 
   return (
@@ -234,7 +235,7 @@ export function SubscriptionsTab({
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Building2 className="h-5 w-5 text-primary" />
-              <span>Visualizando mensalidades de: <strong>{selectedBarbershop.name}</strong></span>
+              <span>Visualizando ativações de: <strong>{selectedBarbershop.name}</strong></span>
             </div>
             <Button variant="ghost" size="sm" onClick={onClearSelection}>
               Ver todas
@@ -269,7 +270,7 @@ export function SubscriptionsTab({
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Nova Mensalidade
+          Nova Ativação
         </Button>
       </div>
 
@@ -289,7 +290,7 @@ export function SubscriptionsTab({
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-primary" />
+                        <Zap className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <h3 className="font-semibold flex items-center gap-2">
@@ -340,7 +341,7 @@ export function SubscriptionsTab({
                         onClick={() => setPayDialogOpen({ open: true, subscription })}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
-                        Marcar como Pago
+                        Confirmar Ativação
                       </Button>
                     )}
                   </div>
@@ -352,8 +353,8 @@ export function SubscriptionsTab({
 
         {filteredSubscriptions.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhuma mensalidade encontrada</p>
+            <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhuma ativação encontrada</p>
           </div>
         )}
       </motion.div>
@@ -362,9 +363,9 @@ export function SubscriptionsTab({
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova Mensalidade</DialogTitle>
+            <DialogTitle>Nova Ativação</DialogTitle>
             <DialogDescription>
-              Registre uma nova mensalidade para uma empresa
+              Registre uma nova ativação de acesso vitalício
             </DialogDescription>
           </DialogHeader>
           
@@ -409,7 +410,7 @@ export function SubscriptionsTab({
             </div>
 
             <div className="space-y-2">
-              <Label>Plano</Label>
+              <Label>Tipo de Ativação</Label>
               <Select
                 value={formData.plan_name}
                 onValueChange={(value) => setFormData({ ...formData, plan_name: value })}
@@ -418,10 +419,9 @@ export function SubscriptionsTab({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mensal">Mensal</SelectItem>
-                  <SelectItem value="trimestral">Trimestral</SelectItem>
-                  <SelectItem value="semestral">Semestral</SelectItem>
-                  <SelectItem value="anual">Anual</SelectItem>
+                  <SelectItem value="vitalicio">Acesso Vitalício</SelectItem>
+                  <SelectItem value="promocional">Promocional</SelectItem>
+                  <SelectItem value="parceiro">Parceiro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -441,7 +441,7 @@ export function SubscriptionsTab({
               Cancelar
             </Button>
             <Button onClick={handleCreateSubscription} disabled={loading}>
-              {loading ? "Criando..." : "Criar Mensalidade"}
+              {loading ? "Registrando..." : "Registrar Ativação"}
             </Button>
           </div>
         </DialogContent>
@@ -454,15 +454,15 @@ export function SubscriptionsTab({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Registrar Pagamento</DialogTitle>
+            <DialogTitle>Confirmar Ativação</DialogTitle>
             <DialogDescription>
-              Marcar mensalidade de {payDialogOpen.subscription?.barbershop_name} como paga
+              Confirmar ativação de acesso vitalício para {payDialogOpen.subscription?.barbershop_name}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Valor</p>
+              <p className="text-sm text-muted-foreground">Valor da Ativação</p>
               <p className="text-2xl font-bold">
                 {payDialogOpen.subscription?.amount.toLocaleString("pt-BR")} MT
               </p>
@@ -494,7 +494,7 @@ export function SubscriptionsTab({
               Cancelar
             </Button>
             <Button onClick={handleMarkAsPaid} disabled={loading}>
-              {loading ? "Processando..." : "Confirmar Pagamento"}
+              {loading ? "Processando..." : "Confirmar Ativação"}
             </Button>
           </div>
         </DialogContent>
